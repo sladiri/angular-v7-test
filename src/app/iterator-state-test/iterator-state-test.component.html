@@ -1,0 +1,7 @@
+<label>Test Input</label>
+<input #input (keyup)="textUpdated(input.value)" placeholder="type here" />
+<!-- could use (keyup.enter) for example -->
+<button (click)="textReset()">Reset</button>
+<p>{{ aText }}</p>
+<p>PointerDown: {{ pointerDown }}</p>
+<p>PointerUp: {{ pointerUp }}</p>
