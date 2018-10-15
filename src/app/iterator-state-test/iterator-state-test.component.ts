@@ -5,6 +5,8 @@ import {
   generateDblClicks,
 } from "@local/IteratorStateManagement";
 
+Symbol["ignored"] = Symbol();
+
 @Component({
   selector: "app-iterator-state-test",
   templateUrl: "./iterator-state-test.component.html",
@@ -15,6 +17,7 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
   aText = "[change me]";
   pointerUp = "NO";
   pointerDown = "NO";
+  dataResponse = "[NO DATA]";
   @ViewChild("input")
   private readonly input;
 
@@ -46,6 +49,7 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
     this.eventsProcessor.start([
       generateDblClicks(),
       this.dummyTransducer,
+      this.generateFetchAction,
       this.updateState.bind(this),
     ]);
   }
@@ -59,6 +63,27 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
     const input = this.input.nativeElement;
     input.value = "";
     input.focus();
+  }
+
+  async dataFetched() {
+    const fetchedData = new Promise(resolve => {
+      setTimeout(() => {
+        const val = Math.random();
+        console.log("data done", val);
+        resolve(val);
+      }, 1000);
+    });
+    this.eventsProcessor.send({ fetchedData });
+  }
+
+  private async *generateFetchAction(source) {
+    for await (const item of source) {
+      if (!item.fetchedData) {
+        yield item;
+        continue;
+      }
+      console.log("fetchAction", item);
+    }
   }
 
   async *updateState(source) {
