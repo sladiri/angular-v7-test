@@ -19,7 +19,7 @@ export const testEvents = (context: IIteratorStateManagement, actions = []) =>
         resolve(states);
       },
     ];
-    context.eventsProcessor.start(transducers);
+    context.eventsProcessor.start(transducers, true);
     for (const [[action, ...params]] of actions) {
       action.apply(context, params);
     }

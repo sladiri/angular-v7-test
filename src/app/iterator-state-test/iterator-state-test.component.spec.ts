@@ -30,11 +30,11 @@ describe("IteratorStateTestComponent", () => {
   it("should update the input text", async(async () => {
     try {
       const states = await testEvents(component, [
-        [[component.textUpdated, "foo"], [["aText"]]],
-        [[component.textReset], [["aText"]]],
-        [[component.textUpdated, "bar"], [["aText"]]],
+        [[component.textUpdated, "a"], [["aText"]]],
+        [[component.textUpdated, "ab"], [["aText"]]],
+        [[component.textUpdated, "abc"], [["aText"]]],
       ]);
-      expect(states).toEqual([["foo"], ["[change me]"], ["bar"]]);
+      expect(states).toEqual([["a"], ["ab"], ["abc"]]);
     } catch (error) {
       console.error(error);
     }

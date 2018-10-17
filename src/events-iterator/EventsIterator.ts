@@ -7,6 +7,7 @@ export class EventsIterator implements IEventsIterator {
   public transducers = []; // Testing API
   private callback: Function = null;
   private queue: any;
+  private isTest = false;
 
   constructor(messageQueueCapacity: number = 2048) {
     if (!Number.isSafeInteger(messageQueueCapacity)) {
@@ -15,9 +16,10 @@ export class EventsIterator implements IEventsIterator {
     this.queue = new Deque(messageQueueCapacity);
   }
 
-  public start(transducers = []) {
-    this.transducers = transducers;
-    const pipeline = this.pipelineTransducers(transducers);
+  public start(transducers, isTest = false) {
+    this.isTest = isTest;
+    this.transducers = [...transducers, this.testOutput.bind(this)];
+    const pipeline = this.pipelineTransducers(this.transducers);
     const processed = pipeline(this.share(this.share(this.produce())));
     this.consume(processed);
   }
@@ -66,5 +68,13 @@ export class EventsIterator implements IEventsIterator {
       return item;
     };
     return pipeline;
+  }
+
+  private async *testOutput(source) {
+    for await (const item of source) {
+      if (this.isTest) {
+        yield item; // last yield in transducer pipeline causes update bug
+      }
+    }
   }
 }
