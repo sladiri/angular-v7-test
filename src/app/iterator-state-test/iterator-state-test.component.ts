@@ -5,8 +5,6 @@ import {
   generateDblClicks,
 } from "@local/IteratorStateManagement";
 
-Symbol["ignored"] = Symbol();
-
 @Component({
   selector: "app-iterator-state-test",
   templateUrl: "./iterator-state-test.component.html",
