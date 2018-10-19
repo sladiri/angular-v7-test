@@ -73,7 +73,7 @@ export class EventsIterator implements IEventsIterator {
   private async *testOutput(source) {
     for await (const item of source) {
       if (this.isTest) {
-        yield item; // last yield in transducer pipeline causes update bug
+        yield item; // last yield in transducer pipeline causes update bug, https://github.com/angular/zone.js/issues/740
       }
     }
   }
