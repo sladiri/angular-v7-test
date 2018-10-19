@@ -112,6 +112,10 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
       }
 
       yield; // Testing API
+
+      if (this.aText === "bingo") {
+        this.textReset();
+      }
     }
   }
 
