@@ -1,29 +1,17 @@
 import { IIteratorStateManagement } from "@local/IteratorStateManagement";
 import { lensPath, view } from "ramda/es";
 
-export const testEvents = (context: IIteratorStateManagement, actions = []) =>
-  new Promise((resolve, reject) => {
-    const transducers = [
-      ...context.eventsProcessor.transducers,
-      async function*(source) {
-        const states = [];
-        let i = 0;
-        for await (const item of source) {
-          const [, paths] = actions[i];
-          states.push(paths.map(p => view(lensPath(p), context)));
-          if (states.length === actions.length) {
-            break;
-          }
-          i += 1;
-        }
-        resolve(states);
-      },
-    ];
-    context.eventsProcessor.start(transducers, true);
-    for (const [[action, ...params]] of actions) {
-      action.apply(context, params);
-    }
+export const testEvents = async (
+  context: IIteratorStateManagement<Object>,
+  statePaths = [],
+) => {
+  const states = statePaths.map(async path => {
+    const { value: state } = await context.eventsIterator.next();
+    return view(lensPath(path), state);
   });
+  const result = await Promise.all(states);
+  return result;
+};
 
 // #region events
 

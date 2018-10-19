@@ -1,5 +1,5 @@
 import { Component, ViewChild } from "@angular/core";
-import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
+import { EventsIterator, EventsProcessor } from "@local/EventsIterator";
 import {
   IIteratorStateManagement,
   generateDblClicks,
@@ -10,8 +10,9 @@ import {
   templateUrl: "./iterator-state-test.component.html",
   styleUrls: ["./iterator-state-test.component.scss"],
 })
-export class IteratorStateTestComponent implements IIteratorStateManagement {
-  readonly eventsProcessor: IEventsIterator = new EventsIterator();
+export class IteratorStateTestComponent
+  implements IIteratorStateManagement<Object> {
+  readonly eventsIterator: EventsIterator<Object> = new EventsProcessor();
   aText = "[change me]";
   pointerUp = "NO";
   pointerDown = "NO";
@@ -22,29 +23,29 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
   constructor() {
     document.addEventListener(
       "pointerdown",
-      this.eventsProcessor.send.bind(this.eventsProcessor),
+      this.eventsIterator.dispatch.bind(this.eventsIterator),
       false,
     );
     document.addEventListener(
       "pointerup",
-      this.eventsProcessor.send.bind(this.eventsProcessor),
+      this.eventsIterator.dispatch.bind(this.eventsIterator),
       false,
     );
     document.addEventListener(
       "pointerdown",
       event => {
-        this.eventsProcessor.send({ pointerdown: true });
+        this.eventsIterator.dispatch({ pointerdown: true });
       },
       false,
     );
     document.addEventListener(
       "pointerup",
       event => {
-        this.eventsProcessor.send({ pointerup: true });
+        this.eventsIterator.dispatch({ pointerup: true });
       },
       false,
     );
-    this.eventsProcessor.start([
+    this.eventsIterator.start([
       generateDblClicks(),
       this.dummyTransducer,
       this.generateFetchAction,
@@ -53,11 +54,11 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
   }
 
   textUpdated(value) {
-    this.eventsProcessor.send({ aText: value });
+    this.eventsIterator.dispatch({ aText: value });
   }
 
   textReset() {
-    this.eventsProcessor.send({ aText: null });
+    this.eventsIterator.dispatch({ aText: null });
     const input = this.input.nativeElement;
     input.value = "";
     input.focus();
@@ -71,7 +72,7 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
         resolve(val);
       }, 1000);
     });
-    this.eventsProcessor.send({ fetchedData });
+    this.eventsIterator.dispatch({ fetchedData });
   }
 
   private async *generateFetchAction(source) {
@@ -111,7 +112,7 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
         this.aText = this.aText === "foo" ? "bar" : "foo";
       }
 
-      yield; // Testing API
+      yield;
 
       if (this.aText === "bingo") {
         this.textReset();

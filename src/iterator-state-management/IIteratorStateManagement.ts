@@ -1,6 +1,6 @@
-import { IEventsIterator } from "@local/EventsIterator";
+import { EventsIterator, Transducer } from "@local/EventsIterator";
 
-export interface IIteratorStateManagement {
-  eventsProcessor: IEventsIterator;
-  updateState(item: any): AsyncIterableIterator<any>;
+export interface IIteratorStateManagement<T> {
+  eventsIterator: EventsIterator<T>; // Testing API
+  updateState: Transducer<T>;
 }

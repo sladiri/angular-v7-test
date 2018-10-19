@@ -23,20 +23,23 @@ describe("IteratorStateTestComponent", () => {
     expect(component).toBeTruthy();
   });
 
-  it("should have eventsProcessor", () => {
-    expect(component.eventsProcessor).toBeTruthy();
+  it("should have eventsIterator", () => {
+    expect(component.eventsIterator).toBeTruthy();
   });
 
   it("should update the input text", async(async () => {
-    try {
-      const states = await testEvents(component, [
-        [[component.textUpdated, "a"], [["aText"]]],
-        [[component.textUpdated, "ab"], [["aText"]]],
-        [[component.textUpdated, "abc"], [["aText"]]],
-      ]);
-      expect(states).toEqual([["a"], ["ab"], ["abc"]]);
-    } catch (error) {
-      console.error(error);
-    }
+    expect(component.aText).toEqual("[change me]");
+    component.textUpdated("a");
+    component.textUpdated("abc");
+    component.textUpdated("ab");
+    // for await (const i of component.eventsIterator) {
+    //   console.log("test", i);
+    // }
+    const states = await testEvents(component, [
+      ["aText"],
+      ["aText"],
+      ["aText"],
+    ]);
+    expect(states).toEqual(["a", "abc", "ab"]);
   }));
 });

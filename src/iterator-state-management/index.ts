@@ -1,2 +1,2 @@
 export { IIteratorStateManagement } from "./IIteratorStateManagement";
-export { testEvents, generateDblClicks } from "./helpers";
+export { generateDblClicks, testEvents } from "./helpers";
