@@ -1,2 +1,2 @@
 export { IEventsIterator } from "./IEventsIterator";
-export { EventsIterator } from "./EventsIterator";
+export { EventsIterator, createProducer, pipe, run } from "./EventsIterator";

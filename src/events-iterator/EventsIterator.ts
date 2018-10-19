@@ -78,3 +78,50 @@ export class EventsIterator implements IEventsIterator {
     }
   }
 }
+
+export const createProducer = (messageQueueCapacity: number = 2048) => {
+  if (!Number.isSafeInteger(messageQueueCapacity)) {
+    throw new Error("Message queue capacity must be safe integer.");
+  }
+
+  let callback;
+  const queue = new Deque(messageQueueCapacity);
+
+  const producer = async function* _producer() {
+    while (true) {
+      while (!queue.isEmpty()) {
+        const value = queue.shift();
+        yield value;
+        if (value && value.type === "DELETE") {
+          return;
+        }
+      }
+      await new Promise(resolve => {
+        callback = resolve;
+      });
+      callback = null;
+    }
+  };
+  producer.dispatch = action => {
+    if (callback) {
+      callback();
+    }
+    queue.push(action);
+  };
+  return producer;
+};
+
+export const pipe = (transducers = []) => (input, dispatch) => {
+  for (const t of transducers) {
+    input = t(input, dispatch);
+  }
+  return input;
+};
+
+export const run = async (producer, transducers = []) => {
+  const main = pipe(transducers);
+  const source = main(producer, producer.dispatch);
+  for await (const i of source) {
+    console.log("main", i);
+  }
+};
