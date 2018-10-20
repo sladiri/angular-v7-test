@@ -1,8 +1,8 @@
 export {
-  IEventsIterator,
-  EventsIterator,
   Dispatch,
   Transducer,
+  IEventsIterator,
+  IMessage,
 } from "./IEventsIterator";
 
-export { EventsProcessor } from "./EventsIterator";
+export { EventsIterator } from "./EventsIterator";

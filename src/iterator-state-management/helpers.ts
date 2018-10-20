@@ -1,53 +1,65 @@
 import { IIteratorStateManagement } from "@local/IteratorStateManagement";
-import { lensPath, view } from "ramda/es";
+import { IMessage, EventsIterator } from "@local/EventsIterator";
 
-export const testEvents = async (
-  context: IIteratorStateManagement<Object>,
-  statePaths = [],
-) => {
-  const states = statePaths.map(async path => {
-    const { value: state } = await context.eventsIterator.next();
-    return view(lensPath(path), state);
-  });
-  const result = await Promise.all(states);
-  return result;
+export const startTest = (
+  component: IIteratorStateManagement,
+): Promise<void | AsyncIterableIterator<IMessage>> => {
+  const eventsIterator = new EventsIterator();
+  const transducers = component.eventsIterator.transducers;
+  component.eventsIterator = eventsIterator;
+  return component.eventsIterator.start(transducers, true);
 };
+
+// #regino iterators
+
+export const take = (n: number) =>
+  async function* _take(source) {
+    if (n <= 0) {
+      return;
+    }
+    for await (const item of source) {
+      yield item;
+      n -= 1;
+      if (n <= 0) {
+        break;
+      }
+    }
+  };
+
+export const filter = (predicate: (item: IMessage) => boolean) =>
+  async function* _filter(source) {
+    for await (const item of source) {
+      if (predicate(item)) {
+        yield item;
+      }
+    }
+  };
+
+// #endregion
 
 // #region events
 
 export const generateDblClicks = (dblClickTime = 300, timeout = 1000) =>
-  async function*(source) {
+  async function*(source, dispatch) {
     for await (const firstEvent of source) {
+      // console.log("OUTER", firstEvent.type);
       if (firstEvent.type !== "pointerup") {
         yield firstEvent;
         continue;
       }
 
-      let last = Date.now();
-      yield firstEvent;
-
+      const last = Date.now();
       for await (const secondEvent of source) {
+        // console.log("INNER", secondEvent.type);
         if (secondEvent.type !== "pointerup") {
           yield secondEvent;
           continue;
         }
-
         const diff = Date.now() - last;
-
-        if (diff > timeout) {
-          // user clicked three times by accident
-          last = Date.now();
-          continue;
-        }
-
-        if (diff < dblClickTime) {
-          yield Object.assign(Object.create(null), {
-            dblclick: true,
-            event: secondEvent,
-          });
-        } else {
-          yield secondEvent;
-        }
+        // console.log("dbl?", diff);
+        yield diff > dblClickTime
+          ? secondEvent
+          : { dblclick: true, type: "dblclick" };
         break;
       }
     }

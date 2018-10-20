@@ -1,14 +1,21 @@
-export type EventsIterator<T> = IEventsIterator<T> & AsyncIterableIterator<T>;
+export type Dispatch = (item: IMessage) => void;
 
-export type Dispatch<T> = (item: T) => void;
+export type Transducer = (
+  trandsducer: AsyncIterableIterator<IMessage>,
+  dispatch?: Dispatch,
+) => AsyncIterableIterator<IMessage>;
 
-export type Transducer<T> = (
-  trandsducer: AsyncIterableIterator<T>,
-  dispatch?: Dispatch<T>,
-) => void;
+export interface IMessage {
+  type?: string;
+  [key: string]: any;
+}
 
-export interface IEventsIterator<T> {
-  dispatch: Dispatch<T>;
-  start(transducers: Array<Transducer<T>>): void;
+export interface IEventsIterator extends AsyncIterableIterator<IMessage> {
+  transducers: Array<Transducer>; // Testing API
+  dispatch: Dispatch;
+  start(
+    trandsducers: Array<Transducer>,
+    isTest?: boolean,
+  ): Promise<void | AsyncIterableIterator<IMessage>>;
   stop(): void;
 }

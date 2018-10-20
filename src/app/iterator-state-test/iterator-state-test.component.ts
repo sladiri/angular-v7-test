@@ -1,5 +1,5 @@
 import { Component, ViewChild } from "@angular/core";
-import { EventsIterator, EventsProcessor } from "@local/EventsIterator";
+import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 import {
   IIteratorStateManagement,
   generateDblClicks,
@@ -10,9 +10,8 @@ import {
   templateUrl: "./iterator-state-test.component.html",
   styleUrls: ["./iterator-state-test.component.scss"],
 })
-export class IteratorStateTestComponent
-  implements IIteratorStateManagement<Object> {
-  readonly eventsIterator: EventsIterator<Object> = new EventsProcessor();
+export class IteratorStateTestComponent implements IIteratorStateManagement {
+  eventsIterator: IEventsIterator = new EventsIterator();
   aText = "[change me]";
   pointerUp = "NO";
   pointerDown = "NO";
@@ -21,16 +20,13 @@ export class IteratorStateTestComponent
   private readonly input;
 
   constructor() {
-    document.addEventListener(
-      "pointerdown",
-      this.eventsIterator.dispatch.bind(this.eventsIterator),
-      false,
-    );
-    document.addEventListener(
-      "pointerup",
-      this.eventsIterator.dispatch.bind(this.eventsIterator),
-      false,
-    );
+    this.eventsIterator.start([
+      generateDblClicks(),
+      this.dummyTransducer,
+      this.generateFetchAction,
+      this.updateState.bind(this),
+      this.dummyTransducer2,
+    ]);
     document.addEventListener(
       "pointerdown",
       event => {
@@ -41,16 +37,11 @@ export class IteratorStateTestComponent
     document.addEventListener(
       "pointerup",
       event => {
-        this.eventsIterator.dispatch({ pointerup: true });
+        this.eventsIterator.dispatch(event);
+        this.eventsIterator.dispatch({ pointerup: true, type: "--" });
       },
       false,
     );
-    this.eventsIterator.start([
-      generateDblClicks(),
-      this.dummyTransducer,
-      this.generateFetchAction,
-      this.updateState.bind(this),
-    ]);
   }
 
   textUpdated(value) {
@@ -68,7 +59,6 @@ export class IteratorStateTestComponent
     const fetchedData = new Promise(resolve => {
       setTimeout(() => {
         const val = Math.random();
-        console.log("data done", val);
         resolve(val);
       }, 1000);
     });
@@ -77,11 +67,12 @@ export class IteratorStateTestComponent
 
   private async *generateFetchAction(source) {
     for await (const item of source) {
-      if (!item.fetchedData) {
-        yield item;
+      if (item.fetchedData) {
+        const data = await item.fetchedData;
+        console.log("fetchAction", data);
         continue;
       }
-      console.log("fetchAction", item);
+      yield item;
     }
   }
 
@@ -112,7 +103,9 @@ export class IteratorStateTestComponent
         this.aText = this.aText === "foo" ? "bar" : "foo";
       }
 
-      yield;
+      yield item; // Testing API
+
+      // automatic actions
 
       if (this.aText === "bingo") {
         this.textReset();
@@ -123,6 +116,13 @@ export class IteratorStateTestComponent
   private async *dummyTransducer(source) {
     for await (const item of source) {
       // console.log("dummyTransducer", item.type || item);
+      yield item;
+    }
+  }
+
+  private async *dummyTransducer2(source) {
+    for await (const item of source) {
+      // console.log("dummyTransducer2", item.type || item);
       yield item;
     }
   }

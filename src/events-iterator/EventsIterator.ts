@@ -1,70 +1,83 @@
 import Deque from "double-ended-queue";
-import { IEventsIterator, Transducer } from "./IEventsIterator";
+import { IEventsIterator, IMessage, Transducer } from "./IEventsIterator";
 
 // https://medium.com/dailyjs/async-generators-as-an-alternative-to-state-management-f9871390ffca
-export class EventsProcessor
-  implements AsyncIterableIterator<Object>, IEventsIterator<Object> {
+export class EventsIterator implements IEventsIterator {
   static readonly TOKEN_DELETE: string = "DELETE";
 
-  private iterator: AsyncIterableIterator<Object>;
-  private queue: any;
+  transducers: Array<Transducer>;
+
+  private readonly producer;
+  private readonly iterator;
+  private readonly queue: any;
+
   private callback: () => void;
   private isDone: Boolean = false;
 
-  static pipe(transducers: Array<Transducer<Object>> = []) {
+  static pipe(transducers: Array<Transducer> = []): Transducer {
     const pipeline = (source, dispatch) => {
       for (const t of transducers) {
-        source = t(source, dispatch);
+        source = t(EventsIterator.share(source), dispatch);
       }
       return source;
     };
     return pipeline;
   }
 
-  constructor(messageQueueCapacity: number = 2048) {
-    if (!Number.isSafeInteger(messageQueueCapacity)) {
-      throw new Error("Message queue capacity must be safe integer.");
-    }
-    this.queue = new Deque(messageQueueCapacity);
-    this.iterator = Object.assign(Object.create(null), {
-      next: async () => {
-        const res = this.next();
-        return res;
+  static share(
+    iterable: AsyncIterable<IMessage>,
+  ): AsyncIterableIterator<IMessage> {
+    const iterator = iterable[Symbol.asyncIterator]();
+    return Object.assign(Object.create(null), {
+      next(value: IMessage) {
+        return iterator.next(value);
+      },
+      [Symbol.asyncIterator]() {
+        return this;
       },
     });
+  }
+
+  constructor(messageQueueCapacity: number = 2048) {
+    if (!Number.isSafeInteger(messageQueueCapacity)) {
+      throw new Error(
+        "EventsIterator: Message queue capacity must be safe integer.",
+      );
+    }
+    this.queue = new Deque(messageQueueCapacity);
+    this.producer = this._producer();
+    this.iterator = this.producer[Symbol.asyncIterator]();
+  }
+
+  next() {
+    return this.producer.next();
   }
 
   [Symbol.asyncIterator]() {
     return this.iterator;
   }
 
-  async next() {
-    if (!this.queue.isEmpty()) {
-      const value = this.queue.shift();
-      const done = (this.isDone =
-        value && value.type === EventsProcessor.TOKEN_DELETE);
-      return { value, done };
-    } else {
-      await new Promise(resolve => {
-        this.callback = resolve;
-      });
-      this.callback = null;
-      return this.next();
+  async start(transducers: Array<Transducer>, isTest = false) {
+    if (transducers.length < 1) {
+      console.warn("EventsIterator: Start has no transducer");
     }
-  }
-
-  async start(transducers: Array<Transducer<Object>> = []): Promise<void> {
-    const main = EventsProcessor.pipe(transducers);
+    const main = EventsIterator.pipe(transducers);
     const source = main(this, this.dispatch.bind(this));
-    for await (const i of source) {
+    if (isTest) {
+      return source;
+    }
+    this.transducers = transducers;
+    for await (const item of source) {
+      // console.log("end", item);
+      // await new Promise(r => setTimeout(r, 10));
     }
   }
 
   stop() {
-    this.dispatch({ type: EventsProcessor.TOKEN_DELETE });
+    this.dispatch({ type: EventsIterator.TOKEN_DELETE });
   }
 
-  dispatch(item: Object) {
+  dispatch(item: IMessage) {
     if (this.isDone) {
       console.warn(
         "EventsIterator done, but dispatch was called with item:",
@@ -76,5 +89,26 @@ export class EventsProcessor
       this.callback();
     }
     this.queue.push(item);
+    // console.log("queue", this.queue.length, item["type"]);
+  }
+
+  private async *_producer() {
+    while (true) {
+      while (!this.queue.isEmpty()) {
+        const f = this.queue.shift();
+        // console.log("f1", f.type);
+        yield f;
+        // console.log("f2", f.type);
+        // console.log("f2");
+        if (f.type === "DELETE") {
+          this.isDone = true;
+          return;
+        }
+      }
+      await new Promise(resolve => {
+        this.callback = resolve;
+      });
+      this.callback = null;
+    }
   }
 }

@@ -1,9 +1,11 @@
 import { async, ComponentFixture, TestBed } from "@angular/core/testing";
 
 import { IteratorStateTestComponent } from "./iterator-state-test.component";
-import { testEvents } from "@local/IteratorStateManagement";
+import { EventsIterator, IMessage } from "@local/EventsIterator";
+import { startTest, take } from "@local/IteratorStateManagement";
 
 describe("IteratorStateTestComponent", () => {
+  let source: AsyncIterableIterator<IMessage>;
   let component: IteratorStateTestComponent;
   let fixture: ComponentFixture<IteratorStateTestComponent>;
 
@@ -13,9 +15,10 @@ describe("IteratorStateTestComponent", () => {
     }).compileComponents();
   }));
 
-  beforeEach(() => {
+  beforeEach(async () => {
     fixture = TestBed.createComponent(IteratorStateTestComponent);
     component = fixture.componentInstance;
+    source = (await startTest(component)) as AsyncIterableIterator<IMessage>;
     fixture.detectChanges();
   });
 
@@ -28,18 +31,26 @@ describe("IteratorStateTestComponent", () => {
   });
 
   it("should update the input text", async(async () => {
-    expect(component.aText).toEqual("[change me]");
     component.textUpdated("a");
     component.textUpdated("abc");
     component.textUpdated("ab");
-    // for await (const i of component.eventsIterator) {
-    //   console.log("test", i);
-    // }
-    const states = await testEvents(component, [
-      ["aText"],
-      ["aText"],
-      ["aText"],
-    ]);
-    expect(states).toEqual(["a", "abc", "ab"]);
+    component.eventsIterator.dispatch({ type: "DELETE" });
+    for await (const item of source) {
+    }
+    console.log("c1", component.aText);
+    expect(component.aText).toEqual("ab");
+  }));
+
+  it("should update the input text automatically", async(async () => {
+    component.textUpdated("qwer");
+    component.textUpdated("asdf");
+    component.textUpdated("bingo");
+    for await (const item of take(3)(EventsIterator.share(source))) {
+    }
+    expect(component.aText).toEqual("bingo");
+    for await (const item of take(1)(EventsIterator.share(source))) {
+    }
+    console.log("c2", component.aText);
+    expect(component.aText).toEqual("[change me]");
   }));
 });

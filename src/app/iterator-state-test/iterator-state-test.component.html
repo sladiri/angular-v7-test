@@ -1,4 +1,6 @@
-<section>
+<h2>Alternative Iterator Test</h2>
+
+<div class="section">
   <label>Test Input</label>
   <input #input (keyup)="textUpdated(input.value)" placeholder="type here" />
   <!-- could use (keyup.enter) for example -->
@@ -6,9 +8,9 @@
   <p>{{ aText }}</p>
   <p>PointerDown: {{ pointerDown }}</p>
   <p>PointerUp: {{ pointerUp }}</p>
-</section>
+</div>
 
-<section>
+<div class="section">
   <label>Test Cancellable</label>
   <p>{{ dataResponse }} <button (click)="dataFetched()">Load Data</button></p>
-</section>
+</div>

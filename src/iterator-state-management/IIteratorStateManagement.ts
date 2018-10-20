@@ -1,6 +1,6 @@
-import { EventsIterator, Transducer } from "@local/EventsIterator";
+import { IEventsIterator, Transducer } from "@local/EventsIterator";
 
-export interface IIteratorStateManagement<T> {
-  eventsIterator: EventsIterator<T>; // Testing API
-  updateState: Transducer<T>;
+export interface IIteratorStateManagement {
+  eventsIterator: IEventsIterator; // Testing API
+  updateState: Transducer;
 }
