@@ -18,12 +18,12 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
   dataResponse = "[NO DATA]";
   @ViewChild("input")
   private readonly input;
+  private generateFetchAction: IEventsIterator = new EventsIterator();
 
   constructor() {
     this.eventsIterator.start([
       generateDblClicks(),
       this.dummyTransducer,
-      this.generateFetchAction,
       this.updateState.bind(this),
       this.dummyTransducer2,
     ]);
@@ -38,10 +38,13 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
       "pointerup",
       event => {
         this.eventsIterator.dispatch(event);
-        this.eventsIterator.dispatch({ pointerup: true, type: "--" });
+        this.eventsIterator.dispatch({ pointerup: true });
       },
       false,
     );
+    // TODO: Possible "threading" in eventsIterator?
+    // TODO: Is it a good pattern?
+    this.generateFetchAction.start([this._generateFetchAction.bind(this)]);
   }
 
   textUpdated(value) {
@@ -57,19 +60,21 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
 
   async dataFetched() {
     const fetchedData = new Promise(resolve => {
+      console.log("thinking ...");
       setTimeout(() => {
         const val = Math.random();
+        console.log("thinking done", val);
         resolve(val);
-      }, 1000);
+      }, 2000);
     });
-    this.eventsIterator.dispatch({ fetchedData });
+    this.generateFetchAction.dispatch({ fetchedData });
   }
 
-  private async *generateFetchAction(source) {
+  private async *_generateFetchAction(source) {
     for await (const item of source) {
       if (item.fetchedData) {
-        const data = await item.fetchedData;
-        console.log("fetchAction", data);
+        const dataResponse = await item.fetchedData;
+        this.eventsIterator.dispatch({ dataResponse });
         continue;
       }
       yield item;
@@ -101,6 +106,11 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
 
       if (dblclick) {
         this.aText = this.aText === "foo" ? "bar" : "foo";
+      }
+
+      const { dataResponse } = item;
+      if (dataResponse) {
+        this.dataResponse = `${dataResponse}`;
       }
 
       yield item; // Testing API
