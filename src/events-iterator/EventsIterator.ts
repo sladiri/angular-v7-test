@@ -4,6 +4,7 @@ import { IEventsIterator, IMessage, Transducer } from "./IEventsIterator";
 // https://medium.com/dailyjs/async-generators-as-an-alternative-to-state-management-f9871390ffca
 export class EventsIterator implements IEventsIterator {
   static readonly TOKEN_DELETE: string = "DELETE";
+  static readonly DEFAULT_TYPE: string = "--";
 
   transducers: Array<Transducer>;
 
@@ -78,6 +79,9 @@ export class EventsIterator implements IEventsIterator {
   }
 
   dispatch(item: IMessage) {
+    if (item.type === undefined) {
+      item.type = EventsIterator.DEFAULT_TYPE;
+    }
     if (this.isDone) {
       console.warn(
         "EventsIterator done, but dispatch was called with item:",
