@@ -5,7 +5,7 @@ import {
   generateDblClicks,
   latest,
 } from "@local/IteratorStateManagement";
-import { BehaviorSubject, Subject } from "rxjs";
+import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 
 @Component({
   selector: "app-iterator-state-test",
@@ -25,13 +25,13 @@ export class IteratorStateTestComponent
     { id: 2, name: "placeholder 2" },
     { id: 3, name: "placeholder 3" },
   ];
-  listItems$: Subject<any>;
+  @ViewChild(ListChildTestComponent)
+  listChild: ListChildTestComponent;
   @ViewChild("input")
   private readonly input;
   private generateFetchAction: IEventsIterator = new EventsIterator();
 
   constructor(private readonly changeDetectRef: ChangeDetectorRef) {
-    this.listItems$ = new BehaviorSubject(this.listItems);
     this.eventsIterator.start([
       generateDblClicks(),
       this.dummyTransducer,
@@ -65,7 +65,7 @@ export class IteratorStateTestComponent
 
   ngOnInit() {
     this.changeDetectRef.detach();
-    this.changeDetectRef.detectChanges();
+    this.eventsIterator.dispatch({}); // Initial render
   }
 
   textUpdated(value) {
@@ -164,8 +164,8 @@ export class IteratorStateTestComponent
 
   private async *notifyStateUpdate(source) {
     for await (const item of source) {
-      this.changeDetectRef.detectChanges(); // reRender
-      this.listItems$.next(this.listItems);
+      this.changeDetectRef.detectChanges();
+      this.listChild.items$ = this.listItems;
       yield item;
     }
   }

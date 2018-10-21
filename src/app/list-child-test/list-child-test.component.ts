@@ -1,5 +1,9 @@
-import { Component, Input, ChangeDetectionStrategy } from "@angular/core";
-import { Observable } from "rxjs";
+import {
+  Component,
+  Input,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+} from "@angular/core";
 
 @Component({
   selector: "app-list-child-test",
@@ -8,8 +12,15 @@ import { Observable } from "rxjs";
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ListChildTestComponent {
+  items = [];
+
   @Input()
-  items$: Observable<any>;
+  set items$(value) {
+    this.items = value;
+    this.changeDetectRef.detectChanges();
+  }
+
+  constructor(private readonly changeDetectRef: ChangeDetectorRef) {}
 
   // Optimize change in list
   trackByItemId(index: number, item: object): number {
