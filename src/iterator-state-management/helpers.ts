@@ -39,28 +39,34 @@ export const filter = (predicate: (item: IMessage) => boolean) =>
 
 // #region events
 
-export const generateDblClicks = (dblClickTime = 300, timeout = 1000) =>
-  async function*(source, dispatch) {
-    for await (const firstEvent of source) {
-      // console.log("OUTER", firstEvent.type);
-      if (firstEvent.type !== "pointerup") {
-        yield firstEvent;
+export const generateDblClicks = (dblClickTime = 300) =>
+  async function*(source) {
+    let last;
+    let firstClick = false;
+
+    for await (const item of source) {
+      if (item.type !== "pointerup") {
+        yield item;
         continue;
       }
 
-      const last = Date.now();
-      for await (const secondEvent of source) {
-        // console.log("INNER", secondEvent.type);
-        if (secondEvent.type !== "pointerup") {
-          yield secondEvent;
+      if (!firstClick) {
+        last = Date.now();
+        firstClick = true;
+        yield item;
           continue;
         }
+
+      if (firstClick) {
         const diff = Date.now() - last;
-        // console.log("dbl?", diff);
-        yield diff > dblClickTime
-          ? secondEvent
-          : { dblclick: true, type: "dblclick" };
-        break;
+        last = Date.now();
+        if (diff > dblClickTime) {
+          yield item;
+          continue;
+        }
+
+        firstClick = false;
+        yield { dblclick: true, type: "--" };
       }
     }
   };
