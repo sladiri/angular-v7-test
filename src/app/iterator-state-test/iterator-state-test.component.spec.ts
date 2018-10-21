@@ -4,6 +4,7 @@ import { IteratorStateTestComponent } from "./iterator-state-test.component";
 import { EventsIterator, IMessage } from "@local/EventsIterator";
 import { startTest, take } from "@local/IteratorStateManagement";
 import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
+import { ListChildItemTestComponent } from "../list-child-item-test/list-child-item-test.component";
 
 describe("IteratorStateTestComponent", () => {
   let source: AsyncIterableIterator<IMessage>;
@@ -12,7 +13,11 @@ describe("IteratorStateTestComponent", () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [IteratorStateTestComponent, ListChildTestComponent],
+      declarations: [
+        IteratorStateTestComponent,
+        ListChildTestComponent,
+        ListChildItemTestComponent,
+      ],
     }).compileComponents();
   }));
 
@@ -45,7 +50,8 @@ describe("IteratorStateTestComponent", () => {
     component.textUpdated("qwer");
     component.textUpdated("asdf");
     component.textUpdated("bingo");
-    for await (const item of take(4)(source)) {
+    for await (const item of take(5)(source)) {
+      // take 5 events = initial + 3 given + 1 automatic
     }
     expect(component.aText).toEqual("[change me]");
   }));
@@ -54,7 +60,7 @@ describe("IteratorStateTestComponent", () => {
     component.textUpdated("qwer");
     component.textUpdated("asdf");
     component.textUpdated("bingo");
-    for await (const item of take(3)(EventsIterator.share(source))) {
+    for await (const item of take(4)(EventsIterator.share(source))) {
     }
     expect(component.aText).toEqual("bingo");
     for await (const item of take(1)(EventsIterator.share(source))) {
