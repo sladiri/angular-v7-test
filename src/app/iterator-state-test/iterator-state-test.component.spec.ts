@@ -3,6 +3,7 @@ import { async, ComponentFixture, TestBed } from "@angular/core/testing";
 import { IteratorStateTestComponent } from "./iterator-state-test.component";
 import { EventsIterator, IMessage } from "@local/EventsIterator";
 import { startTest, take } from "@local/IteratorStateManagement";
+import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 
 describe("IteratorStateTestComponent", () => {
   let source: AsyncIterableIterator<IMessage>;
@@ -11,7 +12,7 @@ describe("IteratorStateTestComponent", () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [IteratorStateTestComponent],
+      declarations: [IteratorStateTestComponent, ListChildTestComponent],
     }).compileComponents();
   }));
 

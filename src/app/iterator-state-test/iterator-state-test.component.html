@@ -14,3 +14,8 @@
   <label>Test Cancellable</label>
   <p>{{ dataResponse }} <button (click)="dataFetched()">Load Data</button></p>
 </div>
+
+<div class="section">
+  <button (click)="itemsUpdated()">Update Items</button>
+  <app-list-child-test [items$]="listItems$"></app-list-child-test>
+</div>

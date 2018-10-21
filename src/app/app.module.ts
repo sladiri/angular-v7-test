@@ -6,6 +6,7 @@ import { AppComponent } from "./app.component";
 import { IteratorStateTestComponent } from "./iterator-state-test/iterator-state-test.component";
 import { BabelTestComponent } from "./babel-test/babel-test.component";
 import { ViewContainerComponent } from "./view-container/view-container.component";
+import { ListChildTestComponent } from "./list-child-test/list-child-test.component";
 
 @NgModule({
   declarations: [
@@ -13,6 +14,7 @@ import { ViewContainerComponent } from "./view-container/view-container.componen
     IteratorStateTestComponent,
     BabelTestComponent,
     ViewContainerComponent,
+    ListChildTestComponent,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [],

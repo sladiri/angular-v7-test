@@ -69,7 +69,10 @@ export class EventsIterator implements IEventsIterator {
     }
     this.transducers = transducers;
     for await (const item of source) {
-      // console.log("end", item);
+      console.log(
+        "end",
+        item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+      );
       // await new Promise(r => setTimeout(r, 10));
     }
   }
@@ -93,18 +96,28 @@ export class EventsIterator implements IEventsIterator {
       this.callback();
     }
     this.queue.push(item);
-    // console.log("queue", this.queue.length, item["type"]);
+    console.log(
+      "queue",
+      this.queue.length,
+      item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+    );
   }
 
   private async *_producer() {
     while (true) {
       while (!this.queue.isEmpty()) {
-        const f = this.queue.shift();
-        // console.log("f1", f.type);
-        yield f;
-        // console.log("f2", f.type);
-        // console.log("f2");
-        if (f.type === "DELETE") {
+        const item = this.queue.shift();
+        console.log(
+          "f1",
+          item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+        );
+        yield item;
+        console.log(
+          "f2",
+          item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+        );
+        console.log("f2");
+        if (item.type === "DELETE") {
           this.isDone = true;
           return;
         }

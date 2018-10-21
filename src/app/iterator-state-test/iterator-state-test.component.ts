@@ -3,7 +3,9 @@ import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 import {
   IIteratorStateManagement,
   generateDblClicks,
+  latest,
 } from "@local/IteratorStateManagement";
+import { BehaviorSubject, Subject } from "rxjs";
 
 @Component({
   selector: "app-iterator-state-test",
@@ -17,15 +19,25 @@ export class IteratorStateTestComponent
   pointerUp = "NO";
   pointerDown = "NO";
   dataResponse = "[NO DATA]";
+  listItems = [
+    { id: 0, name: "placeholder 0" },
+    { id: 1, name: "placeholder 1" },
+    { id: 2, name: "placeholder 2" },
+    { id: 3, name: "placeholder 3" },
+  ];
+  listItems$: Subject<any>;
   @ViewChild("input")
   private readonly input;
   private generateFetchAction: IEventsIterator = new EventsIterator();
 
   constructor(private readonly changeDetectRef: ChangeDetectorRef) {
+    this.listItems$ = new BehaviorSubject(this.listItems);
     this.eventsIterator.start([
       generateDblClicks(),
       this.dummyTransducer,
       this.updateState.bind(this),
+      this.automaticNextActions.bind(this),
+      this.notifyStateUpdate.bind(this),
       this.dummyTransducer2,
     ]);
     document.addEventListener(
@@ -45,7 +57,10 @@ export class IteratorStateTestComponent
     );
     // TODO: Possible "threading" in eventsIterator?
     // TODO: Is it a good pattern?
-    this.generateFetchAction.start([this._generateFetchAction.bind(this)]);
+    this.generateFetchAction.start([
+      this._generateFetchAction.bind(this),
+      this.updateState.bind(this),
+    ]);
   }
 
   ngOnInit() {
@@ -64,6 +79,10 @@ export class IteratorStateTestComponent
     input.focus();
   }
 
+  itemsUpdated() {
+    this.eventsIterator.dispatch({ listItems: true });
+  }
+
   async dataFetched() {
     const fetchedData = new Promise(resolve => {
       console.log("thinking ...");
@@ -76,14 +95,10 @@ export class IteratorStateTestComponent
     this.generateFetchAction.dispatch({ fetchedData });
   }
 
-  private async *_generateFetchAction(source) {
-    for await (const item of source) {
-      if (item.fetchedData) {
-        const dataResponse = await item.fetchedData;
-        this.eventsIterator.dispatch({ dataResponse });
-        continue;
-      }
-      yield item;
+  async *_generateFetchAction(source) {
+    for await (const item of latest()(source)) {
+      console.log("data item", item);
+      this.eventsIterator.dispatch({ dataResponse: item });
     }
   }
 
@@ -119,6 +134,16 @@ export class IteratorStateTestComponent
         this.dataResponse = `${dataResponse}`;
       }
 
+      const { listItems } = item;
+      if (listItems) {
+        const maxId = this.listItems
+          .map(i => i["id"])
+          .reduce((acc, val) => Math.max(acc, val), 0);
+        const index = Math.floor(Math.random() * this.listItems.length);
+        this.listItems[index]["name"] = `${Math.random()}`;
+        this.listItems[index]["id"] = maxId + 1;
+      }
+
       this.changeDetectRef.detectChanges();
       yield item; // Testing API
 
@@ -140,6 +165,22 @@ export class IteratorStateTestComponent
   private async *dummyTransducer2(source) {
     for await (const item of source) {
       // console.log("dummyTransducer2", item.type || item);
+      yield item;
+    }
+  }
+
+  private async *automaticNextActions(source) {
+    for await (const item of source) {
+      if (this.aText === "bingo") {
+        this.textReset();
+      }
+      yield item;
+    }
+  }
+
+  private async *notifyStateUpdate(source) {
+    for await (const item of source) {
+      this.listItems$.next(this.listItems);
       yield item;
     }
   }

@@ -1,2 +1,2 @@
 export { IIteratorStateManagement } from "./IIteratorStateManagement";
-export { generateDblClicks, startTest, take } from "./helpers";
+export { startTest, take, filter, latest, generateDblClicks } from "./helpers";

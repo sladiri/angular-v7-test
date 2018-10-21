@@ -35,6 +35,18 @@ export const filter = (predicate: (item: IMessage) => boolean) =>
     }
   };
 
+export const latest = () =>
+  async function* _latest(source) {
+    for await (const item of source) {
+      if (item.fetchedData) {
+        const dataResponse = await item.fetchedData;
+        yield dataResponse;
+        continue;
+      }
+      yield item;
+    }
+  };
+
 // #endregion
 
 // #region events
@@ -54,8 +66,8 @@ export const generateDblClicks = (dblClickTime = 300) =>
         last = Date.now();
         firstClick = true;
         yield item;
-          continue;
-        }
+        continue;
+      }
 
       if (firstClick) {
         const diff = Date.now() - last;
