@@ -36,8 +36,8 @@ export class IteratorStateTestComponent
       generateDblClicks(),
       this.dummyTransducer,
       this.updateState.bind(this),
-      this.automaticNextActions.bind(this),
       this.notifyStateUpdate.bind(this),
+      this.automaticNextActions.bind(this),
       this.dummyTransducer2,
     ]);
     document.addEventListener(
@@ -144,14 +144,7 @@ export class IteratorStateTestComponent
         this.listItems[index]["id"] = maxId + 1;
       }
 
-      this.changeDetectRef.detectChanges();
-      yield item; // Testing API
-
-      // automatic actions
-
-      if (this.aText === "bingo") {
-        this.textReset();
-      }
+      yield item;
     }
   }
 
@@ -169,18 +162,19 @@ export class IteratorStateTestComponent
     }
   }
 
+  private async *notifyStateUpdate(source) {
+    for await (const item of source) {
+      this.changeDetectRef.detectChanges(); // reRender
+      this.listItems$.next(this.listItems);
+      yield item;
+    }
+  }
+
   private async *automaticNextActions(source) {
     for await (const item of source) {
       if (this.aText === "bingo") {
         this.textReset();
       }
-      yield item;
-    }
-  }
-
-  private async *notifyStateUpdate(source) {
-    for await (const item of source) {
-      this.listItems$.next(this.listItems);
       yield item;
     }
   }
