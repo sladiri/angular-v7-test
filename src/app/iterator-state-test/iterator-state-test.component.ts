@@ -12,7 +12,7 @@ import {
 })
 export class IteratorStateTestComponent
   implements IIteratorStateManagement, OnInit {
-  eventsIterator: IEventsIterator = new EventsIterator();
+  eventsIterator: IEventsIterator = new EventsIterator(); // Testing API
   aText = "[change me]";
   pointerUp = "NO";
   pointerDown = "NO";
