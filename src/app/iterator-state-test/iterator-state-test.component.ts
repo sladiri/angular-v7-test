@@ -1,4 +1,4 @@
-import { Component, ViewChild } from "@angular/core";
+import { Component, ViewChild, ChangeDetectorRef, OnInit } from "@angular/core";
 import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 import {
   IIteratorStateManagement,
@@ -10,7 +10,8 @@ import {
   templateUrl: "./iterator-state-test.component.html",
   styleUrls: ["./iterator-state-test.component.scss"],
 })
-export class IteratorStateTestComponent implements IIteratorStateManagement {
+export class IteratorStateTestComponent
+  implements IIteratorStateManagement, OnInit {
   eventsIterator: IEventsIterator = new EventsIterator();
   aText = "[change me]";
   pointerUp = "NO";
@@ -20,7 +21,7 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
   private readonly input;
   private generateFetchAction: IEventsIterator = new EventsIterator();
 
-  constructor() {
+  constructor(private readonly changeDetectRef: ChangeDetectorRef) {
     this.eventsIterator.start([
       generateDblClicks(),
       this.dummyTransducer,
@@ -45,6 +46,11 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
     // TODO: Possible "threading" in eventsIterator?
     // TODO: Is it a good pattern?
     this.generateFetchAction.start([this._generateFetchAction.bind(this)]);
+  }
+
+  ngOnInit() {
+    this.changeDetectRef.detach();
+    this.changeDetectRef.detectChanges();
   }
 
   textUpdated(value) {
@@ -113,6 +119,7 @@ export class IteratorStateTestComponent implements IIteratorStateManagement {
         this.dataResponse = `${dataResponse}`;
       }
 
+      this.changeDetectRef.detectChanges();
       yield item; // Testing API
 
       // automatic actions
