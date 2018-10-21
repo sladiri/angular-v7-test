@@ -37,11 +37,19 @@ describe("IteratorStateTestComponent", () => {
     component.eventsIterator.dispatch({ type: "DELETE" });
     for await (const item of source) {
     }
-    console.log("c1", component.aText);
     expect(component.aText).toEqual("ab");
   }));
 
   it("should update the input text automatically", async(async () => {
+    component.textUpdated("qwer");
+    component.textUpdated("asdf");
+    component.textUpdated("bingo");
+    for await (const item of take(4)(source)) {
+    }
+    expect(component.aText).toEqual("[change me]");
+  }));
+
+  it("should update the input text automatically - split", async(async () => {
     component.textUpdated("qwer");
     component.textUpdated("asdf");
     component.textUpdated("bingo");
@@ -50,7 +58,6 @@ describe("IteratorStateTestComponent", () => {
     expect(component.aText).toEqual("bingo");
     for await (const item of take(1)(EventsIterator.share(source))) {
     }
-    console.log("c2", component.aText);
     expect(component.aText).toEqual("[change me]");
   }));
 });
