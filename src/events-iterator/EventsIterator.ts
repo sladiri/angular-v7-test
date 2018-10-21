@@ -8,10 +8,10 @@ export class EventsIterator implements IEventsIterator {
 
   transducers: Array<Transducer>;
 
-  private readonly producer;
+  private readonly producer: AsyncIterableIterator<IMessage>;
   private readonly iterator;
-  private readonly queue: any;
 
+  private readonly queue: any;
   private callback: () => void;
   private isDone: Boolean = false;
 
@@ -69,10 +69,10 @@ export class EventsIterator implements IEventsIterator {
     }
     this.transducers = transducers;
     for await (const item of source) {
-      console.log(
-        "end",
-        item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-      );
+      // console.log(
+      //   "end",
+      //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+      // );
       // await new Promise(r => setTimeout(r, 10));
     }
   }
@@ -96,27 +96,27 @@ export class EventsIterator implements IEventsIterator {
       this.callback();
     }
     this.queue.push(item);
-    console.log(
-      "queue",
-      this.queue.length,
-      item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-    );
+    // console.log(
+    //   "queue",
+    //   this.queue.length,
+    //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+    // );
   }
 
   private async *_producer() {
     while (true) {
       while (!this.queue.isEmpty()) {
         const item = this.queue.shift();
-        console.log(
-          "f1",
-          item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-        );
+        // console.log(
+        //   "f1",
+        //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+        // );
         yield item;
-        console.log(
-          "f2",
-          item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-        );
-        console.log("f2");
+        // console.log(
+        //   "f2",
+        //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
+        // );
+        // console.log("f2");
         if (item.type === "DELETE") {
           this.isDone = true;
           return;
