@@ -32,6 +32,7 @@ export class IteratorStateTestComponent
   private generateFetchAction: IEventsIterator = new EventsIterator();
 
   constructor(private readonly changeDetectRef: ChangeDetectorRef) {
+    this.changeDetectRef.detach();
     this.eventsIterator.start([
       generateDblClicks(),
       this.dummyTransducer,
@@ -64,8 +65,9 @@ export class IteratorStateTestComponent
   }
 
   ngOnInit() {
-    this.changeDetectRef.detach();
     this.eventsIterator.dispatch({}); // Initial render
+    // Initialise children with full list to optimise change, but Angular can help us, see below in notifyStateUpdate
+    // this.listChild.itemsUpdated(this.listItems);
   }
 
   textUpdated(value) {
@@ -79,8 +81,8 @@ export class IteratorStateTestComponent
     input.focus();
   }
 
-  itemsUpdated() {
-    this.eventsIterator.dispatch({ listItems: true });
+  itemUpdated() {
+    this.eventsIterator.dispatch({ itemUpdated: true });
   }
 
   async dataFetched() {
@@ -134,14 +136,13 @@ export class IteratorStateTestComponent
         this.dataResponse = `${dataResponse}`;
       }
 
-      const { listItems } = item;
-      if (listItems) {
-        const maxId = this.listItems
-          .map(i => i["id"])
-          .reduce((acc, val) => Math.max(acc, val), 0);
+      const { itemUpdated } = item;
+      if (itemUpdated) {
         const index = Math.floor(Math.random() * this.listItems.length);
-        this.listItems[index]["name"] = `${Math.random()}`;
-        this.listItems[index]["id"] = maxId + 1;
+        const name = `${Math.random()}`;
+        this.listItems[index]["name"] = name;
+        // If we make sure to not to change items, we can let Angular optimise re-renders
+        // item = { listItemUpdate: { index, name } };
       }
 
       yield item;
@@ -165,7 +166,14 @@ export class IteratorStateTestComponent
   private async *notifyStateUpdate(source) {
     for await (const item of source) {
       this.changeDetectRef.detectChanges();
-      this.listChild.items$ = this.listItems;
+
+      // trackBy prevents re-render of all list items
+      // if (item.listItemUpdate) {
+      // this.listChild.itemUpdated(item.listItemUpdate);
+      // this.listChild.itemsUpdated(JSON.parse(JSON.stringify(this.listItems)));
+      // }
+      this.listChild.itemsUpdated(this.listItems);
+
       yield item;
     }
   }

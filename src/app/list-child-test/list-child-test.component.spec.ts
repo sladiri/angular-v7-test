@@ -1,6 +1,7 @@
 import { async, ComponentFixture, TestBed } from "@angular/core/testing";
 
 import { ListChildTestComponent } from "./list-child-test.component";
+import { ListChildItemTestComponent } from "../list-child-item-test/list-child-item-test.component";
 
 describe("ListChildTestComponent", () => {
   let component: ListChildTestComponent;
@@ -8,7 +9,7 @@ describe("ListChildTestComponent", () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ListChildTestComponent],
+      declarations: [ListChildTestComponent, ListChildItemTestComponent],
     }).compileComponents();
   }));
 
