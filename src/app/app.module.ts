@@ -8,6 +8,7 @@ import { BabelTestComponent } from "./babel-test/babel-test.component";
 import { ViewContainerComponent } from "./view-container/view-container.component";
 import { ListChildTestComponent } from "./list-child-test/list-child-test.component";
 import { ListChildItemTestComponent } from "./list-child-item-test/list-child-item-test.component";
+import { EnsureNoopenerDirective } from "./ensure-noopener.directive";
 
 @NgModule({
   declarations: [
@@ -17,6 +18,7 @@ import { ListChildItemTestComponent } from "./list-child-item-test/list-child-it
     ViewContainerComponent,
     ListChildTestComponent,
     ListChildItemTestComponent,
+    EnsureNoopenerDirective,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [],
