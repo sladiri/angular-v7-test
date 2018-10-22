@@ -36,6 +36,7 @@ export class EventsIterator implements IEventsIterator {
       [Symbol.asyncIterator]() {
         return this;
       },
+      return() {},
     });
   }
 
