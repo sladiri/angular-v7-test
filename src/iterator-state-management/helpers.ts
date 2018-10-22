@@ -26,6 +26,14 @@ export const take = (n: number) =>
     }
   };
 
+export const map = (mapper: (item: IMessage) => IMessage) =>
+  async function* _filter(source) {
+    for await (const item of source) {
+      const result = mapper(item);
+      yield result;
+    }
+  };
+
 export const filter = (predicate: (item: IMessage) => boolean) =>
   async function* _filter(source) {
     for await (const item of source) {
@@ -35,15 +43,56 @@ export const filter = (predicate: (item: IMessage) => boolean) =>
     }
   };
 
-export const latest = () =>
-  async function* _latest(source) {
+export const distinctUntilChanged = (
+  areDistinct = (a: IMessage, b: IMessage) => a !== b,
+) => {
+  let initial = Object.create(null);
+  return async function* _distinctUntilChanged(source) {
     for await (const item of source) {
-      if (item.fetchedData) {
-        const dataResponse = await item.fetchedData;
-        yield dataResponse;
-        continue;
+      if (areDistinct(initial, item)) {
+        initial = item;
+        yield item;
       }
+    }
+  };
+};
+
+export const forEach = (task = (i: IMessage) => {}) => {
+  return async function* _forEach(source) {
+    for await (const item of source) {
+      await task(item);
       yield item;
+    }
+  };
+};
+
+const peek = async function* _peek(iterable) {
+  const iter = iterable[Symbol.asyncIterator]();
+  let result;
+  try {
+    let next = iter.next();
+    while (true) {
+      result = await next;
+      if (result.done) {
+        return result.value;
+      }
+      yield [result.value, (next = iter.next())];
+    }
+  } finally {
+    if (!(result && result.done)) {
+      iter.return();
+    }
+  }
+};
+
+export const flatMapLatest = fn =>
+  async function* _flatMapLatest(source) {
+    const cancel = {};
+    for await (const [value, next] of peek(source)) {
+      const result = await Promise.race([fn(value), next.then(() => cancel)]);
+      if (result !== cancel) {
+        yield result;
+      }
     }
   };
 

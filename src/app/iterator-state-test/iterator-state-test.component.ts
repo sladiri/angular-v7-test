@@ -3,7 +3,11 @@ import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 import {
   IIteratorStateManagement,
   generateDblClicks,
-  latest,
+  filter,
+  flatMapLatest,
+  distinctUntilChanged,
+  map,
+  forEach,
 } from "@local/IteratorStateManagement";
 import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 
@@ -59,8 +63,11 @@ export class IteratorStateTestComponent
     // TODO: Possible "threading" in eventsIterator?
     // TODO: Is it a good pattern?
     this.generateFetchAction.start([
-      this._generateFetchAction.bind(this),
-      this.updateState.bind(this),
+      filter(i => i.fetchedData),
+      distinctUntilChanged((a, b) => a.fetchedData !== b.fetchedData),
+      flatMapLatest(this.fetchData),
+      map(dataResponse => ({ dataResponse })),
+      forEach(i => this.eventsIterator.dispatch(i)),
     ]);
   }
 
@@ -85,23 +92,10 @@ export class IteratorStateTestComponent
     this.eventsIterator.dispatch({ itemUpdated: true });
   }
 
-  async dataFetched() {
-    const fetchedData = new Promise(resolve => {
-      console.log("thinking ...");
-      setTimeout(() => {
-        const val = Math.random();
-        console.log("thinking done", val);
-        resolve(val);
-      }, 2000);
-    });
+  dataFetched() {
+    const fetchedData = `${Math.random()}`;
+    // const fetchedData = 42;
     this.generateFetchAction.dispatch({ fetchedData });
-  }
-
-  async *_generateFetchAction(source) {
-    for await (const item of latest()(source)) {
-      console.log("data item", item);
-      this.eventsIterator.dispatch({ dataResponse: item });
-    }
   }
 
   async *updateState(source) {
@@ -185,5 +179,14 @@ export class IteratorStateTestComponent
       }
       yield item;
     }
+  }
+
+  private fetchData() {
+    return new Promise(resolve => {
+      const val = `${Math.random()}`;
+      const delay = Math.floor(Math.random() * (2000 - 100 + 1)) + 100;
+      console.log("fetching with delay ...", val, delay);
+      setTimeout(() => resolve(val), delay);
+    });
   }
 }
