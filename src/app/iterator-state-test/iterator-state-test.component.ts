@@ -166,6 +166,7 @@ export class IteratorStateTestComponent
   }
 
   private async *notifyStateUpdate(source) {
+    let items;
     for await (const item of source) {
       this.changeDetectRef.detectChanges();
 
@@ -174,7 +175,11 @@ export class IteratorStateTestComponent
       // this.listChild.itemUpdated(item.listItemUpdate);
       // this.listChild.itemsUpdated(JSON.parse(JSON.stringify(this.listItems)));
       // }
-      this.listChild.itemsUpdated(this.listItems);
+      const newitems = JSON.stringify(this.listItems);
+      if (!items || items !== newitems) {
+        this.listChild.itemsUpdated(this.listItems);
+        items = newitems;
+      }
 
       yield item;
     }
