@@ -3,12 +3,13 @@ import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 import {
   IIteratorStateManagement,
   generateDblClicks,
-  filter,
+  // filter,
   flatMapLatest,
   distinctUntilChanged,
-  map,
+  // map,
   forEach,
 } from "@local/IteratorStateManagement";
+import { asyncFilter, asyncMap } from "iter-tools";
 import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 
 @Component({
@@ -63,11 +64,14 @@ export class IteratorStateTestComponent
     // TODO: Possible "threading" in eventsIterator?
     // TODO: Is it a good pattern?
     this.generateFetchAction.start([
-      filter(i => i.fetchedData),
+      asyncFilter(i => i.fetchedData),
+      // filter(i => i.fetchedData),
       distinctUntilChanged((a, b) => a.fetchedData !== b.fetchedData),
       flatMapLatest(this.fetchData),
-      map(dataResponse => ({ dataResponse })),
+      // map(dataResponse => ({ dataResponse })),
+      asyncMap(dataResponse => ({ dataResponse })),
       forEach(i => this.eventsIterator.dispatch(i)),
+      // asyncTap(i => this.eventsIterator.dispatch(i)), // type error bug?
     ]);
   }
 
