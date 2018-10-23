@@ -16,6 +16,6 @@
 </div>
 
 <div class="section">
-  <button (click)="itemUpdated()">Update Item</button>
-  <app-list-child-test></app-list-child-test>
+  <button (click)="randomItemUpdated()">Update Item</button>
+  <app-list-child-test (itemClicked)="itemClicked($event)"></app-list-child-test>
 </div>

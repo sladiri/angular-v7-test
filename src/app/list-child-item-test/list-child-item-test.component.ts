@@ -1,4 +1,10 @@
-import { Component, ChangeDetectionStrategy, Input } from "@angular/core";
+import {
+  Component,
+  ChangeDetectionStrategy,
+  Input,
+  Output,
+  EventEmitter,
+} from "@angular/core";
 
 @Component({
   selector: "app-list-child-item-test",
@@ -11,4 +17,11 @@ export class ListChildItemTestComponent {
   id;
   @Input()
   name;
+
+  @Output()
+  itemClicked = new EventEmitter();
+
+  _itemClicked(value) {
+    this.itemClicked.emit(value);
+  }
 }

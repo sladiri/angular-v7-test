@@ -24,10 +24,10 @@ export class IteratorStateTestComponent
   pointerDown = "NO";
   dataResponse = "[NO DATA]";
   listItems = [
-    { id: 0, name: "placeholder 0" },
-    { id: 1, name: "placeholder 1" },
-    { id: 2, name: "placeholder 2" },
-    { id: 3, name: "placeholder 3" },
+    { id: 0, name: "placeholder_0" },
+    { id: 1, name: "placeholder_1" },
+    { id: 2, name: "placeholder_2" },
+    { id: 3, name: "placeholder_3" },
   ];
   @ViewChild(ListChildTestComponent)
   listChild: ListChildTestComponent;
@@ -39,11 +39,11 @@ export class IteratorStateTestComponent
     this.changeDetectRef.detach();
     this.eventsIterator.start([
       generateDblClicks(),
-      this.dummyTransducer,
+      // this.dummyTransducer,
       this.updateState.bind(this),
       this.notifyStateUpdate.bind(this),
       this.automaticNextActions.bind(this),
-      this.dummyTransducer2,
+      // this.dummyTransducer2,
     ]);
     document.addEventListener(
       "pointerdown",
@@ -88,8 +88,12 @@ export class IteratorStateTestComponent
     input.focus();
   }
 
-  itemUpdated() {
+  randomItemUpdated() {
     this.eventsIterator.dispatch({ itemUpdated: true });
+  }
+
+  itemClicked([id, name]) {
+    this.eventsIterator.dispatch({ itemUpdated: id });
   }
 
   dataFetched() {
@@ -131,12 +135,16 @@ export class IteratorStateTestComponent
       }
 
       const { itemUpdated } = item;
-      if (itemUpdated) {
+      if (itemUpdated === true) {
         const index = Math.floor(Math.random() * this.listItems.length);
         const name = `${Math.random()}`;
         this.listItems[index]["name"] = name;
         // If we make sure to not to change items, we can let Angular optimise re-renders
         // item = { listItemUpdate: { index, name } };
+      }
+      if (Number.isInteger(itemUpdated)) {
+        const name = `${Math.random()}`;
+        this.listItems[itemUpdated]["name"] = name;
       }
 
       yield item;
@@ -145,14 +153,14 @@ export class IteratorStateTestComponent
 
   private async *dummyTransducer(source) {
     for await (const item of source) {
-      // console.log("dummyTransducer", item.type || item);
+      console.log("dummyTransducer", item.type || item);
       yield item;
     }
   }
 
   private async *dummyTransducer2(source) {
     for await (const item of source) {
-      // console.log("dummyTransducer2", item.type || item);
+      console.log("dummyTransducer2", item.type || item);
       yield item;
     }
   }
