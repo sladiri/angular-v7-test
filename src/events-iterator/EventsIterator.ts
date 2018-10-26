@@ -135,15 +135,15 @@ export class EventsIterator implements IEventsIterator {
       while (!this.queue.isEmpty()) {
         const item = this.queue.shift();
         // console.log(
-        //   "f1",
+        //   "_producer 0",
         //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
         // );
         yield item;
         // console.log(
-        //   "f2",
+        //   "_producer 1",
         //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
         // );
-        // console.log("f2");
+        // console.log("_producer 1");
         if (item.type === "DELETE") {
           this.isDone = true;
           return;
