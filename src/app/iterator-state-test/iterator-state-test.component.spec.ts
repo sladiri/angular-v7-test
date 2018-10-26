@@ -1,15 +1,15 @@
 import { async, ComponentFixture, TestBed } from "@angular/core/testing";
 
 import { IteratorStateTestComponent } from "./iterator-state-test.component";
-import { EventsIterator, IMessage } from "@local/EventsIterator";
+import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 import { startTest, take } from "@local/IteratorStateManagement";
 import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 import { ListChildItemTestComponent } from "../list-child-item-test/list-child-item-test.component";
 
 describe("IteratorStateTestComponent", () => {
-  let source: AsyncIterableIterator<IMessage>;
-  let component: IteratorStateTestComponent;
   let fixture: ComponentFixture<IteratorStateTestComponent>;
+  let component: IteratorStateTestComponent;
+  let eventsIterator: IEventsIterator;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -24,7 +24,7 @@ describe("IteratorStateTestComponent", () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(IteratorStateTestComponent);
     component = fixture.componentInstance;
-    source = (await startTest(component)) as AsyncIterableIterator<IMessage>;
+    eventsIterator = await startTest(component);
     fixture.detectChanges();
   });
 
@@ -40,8 +40,8 @@ describe("IteratorStateTestComponent", () => {
     component.textUpdated("a");
     component.textUpdated("abc");
     component.textUpdated("ab");
-    component.eventsIterator.dispatch({ type: "DELETE" });
-    for await (const item of source) {
+    eventsIterator.dispatch({ type: "DELETE" });
+    for await (const item of eventsIterator) {
     }
     expect(component.aText).toEqual("ab");
   }));
@@ -50,7 +50,7 @@ describe("IteratorStateTestComponent", () => {
     component.textUpdated("qwer");
     component.textUpdated("asdf");
     component.textUpdated("bingo");
-    for await (const item of take(5)(source)) {
+    for await (const item of take(5)(eventsIterator)) {
       // take 5 events = initial + 3 given + 1 automatic
     }
     expect(component.aText).toEqual("[change me]");
@@ -60,10 +60,10 @@ describe("IteratorStateTestComponent", () => {
     component.textUpdated("qwer");
     component.textUpdated("asdf");
     component.textUpdated("bingo");
-    for await (const item of take(4)(EventsIterator.share(source))) {
+    for await (const item of take(4)(EventsIterator.share(eventsIterator))) {
     }
     expect(component.aText).toEqual("bingo");
-    for await (const item of take(1)(EventsIterator.share(source))) {
+    for await (const item of take(1)(EventsIterator.share(eventsIterator))) {
     }
     expect(component.aText).toEqual("[change me]");
   }));

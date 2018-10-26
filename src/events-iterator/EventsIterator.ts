@@ -8,12 +8,14 @@ export class EventsIterator implements IEventsIterator {
 
   transducers: Array<Transducer>;
 
-  private readonly producer: AsyncIterableIterator<IMessage>;
-  private readonly iterator;
-
-  private readonly queue: any;
+  private readonly messageQueueCapacity: number;
+  private queue: any;
   private callback: () => void;
   private isDone: Boolean = false;
+
+  private producer: AsyncIterableIterator<IMessage>;
+  private outlet: AsyncIterableIterator<IMessage>;
+  private outletIterator: AsyncIterableIterator<IMessage>;
 
   static pipe(transducers: Array<Transducer> = []): Transducer {
     const pipeline = (source, dispatch) => {
@@ -40,33 +42,57 @@ export class EventsIterator implements IEventsIterator {
     });
   }
 
+  private static async *_testTransducer(source) {
+    for await (const item of source) {
+      yield item;
+    }
+  }
+
   constructor(messageQueueCapacity: number = 2048) {
     if (!Number.isSafeInteger(messageQueueCapacity)) {
       throw new Error(
         "EventsIterator: Message queue capacity must be safe integer.",
       );
     }
-    this.queue = new Deque(messageQueueCapacity);
-    this.producer = this._producer();
-    this.iterator = this.producer[Symbol.asyncIterator]();
+    this.messageQueueCapacity = messageQueueCapacity;
   }
 
   next() {
-    return this.producer.next();
+    if (!this.outlet) {
+      throw new Error("EventsIterator: No iterable defined, was start called?");
+    }
+    return this.outlet.next();
   }
 
   [Symbol.asyncIterator]() {
-    return this.iterator;
+    if (!this.outletIterator) {
+      throw new Error("EventsIterator: No iterator defined, was start called?");
+    }
+    return this.outletIterator;
   }
 
-  async start(transducers: Array<Transducer>, isTest = false) {
+  async start(
+    transducers: Array<Transducer>,
+    isTest = false,
+    messageQueueCapacity = this.messageQueueCapacity,
+  ) {
     if (transducers.length < 1) {
       console.warn("EventsIterator: Start has no transducer");
     }
-    const main = EventsIterator.pipe(transducers);
-    const source = main(this, this.dispatch.bind(this));
+    this.queue = new Deque(messageQueueCapacity);
+    this.producer = this._producer();
     if (isTest) {
-      return source;
+      const testTransducer = _source => {
+        this.outlet = EventsIterator._testTransducer(_source);
+        this.outletIterator = this.outlet[Symbol.asyncIterator]();
+        return this.outlet;
+      };
+      transducers = [...transducers, testTransducer];
+    }
+    const main = EventsIterator.pipe(transducers);
+    const source = main(this.producer, this.dispatch.bind(this));
+    if (isTest) {
+      return this;
     }
     this.transducers = transducers;
     for await (const item of source) {
@@ -93,10 +119,10 @@ export class EventsIterator implements IEventsIterator {
       );
       return;
     }
+    this.queue.push(item);
     if (this.callback) {
       this.callback();
     }
-    this.queue.push(item);
     // console.log(
     //   "queue",
     //   this.queue.length,

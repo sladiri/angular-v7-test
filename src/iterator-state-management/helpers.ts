@@ -3,14 +3,16 @@ import { IMessage, EventsIterator } from "@local/EventsIterator";
 
 export const startTest = (
   component: IIteratorStateManagement,
-): Promise<void | AsyncIterableIterator<IMessage>> => {
+): Promise<EventsIterator> => {
   const eventsIterator = new EventsIterator();
   const transducers = component.eventsIterator.transducers;
   component.eventsIterator = eventsIterator;
-  return component.eventsIterator.start(transducers, true);
+  return component.eventsIterator.start(transducers, true) as Promise<
+    EventsIterator
+  >;
 };
 
-// #regino iterators
+// #region iterators
 
 export const take = (n: number) =>
   async function* _take(source) {
