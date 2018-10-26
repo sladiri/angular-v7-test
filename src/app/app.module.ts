@@ -9,6 +9,8 @@ import { ViewContainerComponent } from "./view-container/view-container.componen
 import { ListChildTestComponent } from "./list-child-test/list-child-test.component";
 import { ListChildItemTestComponent } from "./list-child-item-test/list-child-item-test.component";
 import { EnsureNoopenerDirective } from "./ensure-noopener.directive";
+import { IterToolsStateTestComponent } from "./iter-tools-state-test/iter-tools-state-test.component";
+import { IterToolsStateTestChildComponent } from "./iter-tools-state-test-child/iter-tools-state-test-child.component";
 
 @NgModule({
   declarations: [
@@ -19,6 +21,8 @@ import { EnsureNoopenerDirective } from "./ensure-noopener.directive";
     ListChildTestComponent,
     ListChildItemTestComponent,
     EnsureNoopenerDirective,
+    IterToolsStateTestComponent,
+    IterToolsStateTestChildComponent,
   ],
   imports: [BrowserModule, AppRoutingModule],
   providers: [],
