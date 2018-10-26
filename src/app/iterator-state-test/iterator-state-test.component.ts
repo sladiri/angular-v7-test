@@ -79,6 +79,7 @@ export class IteratorStateTestComponent
     this.eventsIterator.dispatch({}); // Initial render
     // Initialise children with full list to optimise change, but Angular can help us, see below in notifyStateUpdate
     // this.listChild.itemsUpdated(this.listItems);
+    this.input.nativeElement.focus();
   }
 
   textUpdated(value) {
