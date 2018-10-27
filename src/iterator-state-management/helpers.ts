@@ -1,10 +1,7 @@
-import { IIteratorStateManagement } from "@local/IteratorStateManagement";
-import { IMessage, EventsIterator } from "@local/EventsIterator";
+import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 
-export const startTest = (
-  component: IIteratorStateManagement,
-): Promise<EventsIterator> => {
-  const eventsIterator = new EventsIterator();
+export const startTest = (component: any): Promise<EventsIterator> => {
+  const eventsIterator: IEventsIterator = new EventsIterator();
   const transducers = component.eventsIterator.transducers;
   component.eventsIterator = eventsIterator;
   return component.eventsIterator.start(transducers, true) as Promise<
@@ -28,7 +25,7 @@ export const take = (n: number) =>
     }
   };
 
-export const map = (mapper: (item: IMessage) => IMessage) =>
+export const map = (mapper: (item: any) => any) =>
   async function* _filter(source) {
     for await (const item of source) {
       const result = mapper(item);
@@ -36,7 +33,7 @@ export const map = (mapper: (item: IMessage) => IMessage) =>
     }
   };
 
-export const filter = (predicate: (item: IMessage) => boolean) =>
+export const filter = (predicate: (item: any) => boolean) =>
   async function* _filter(source) {
     for await (const item of source) {
       if (predicate(item)) {
@@ -46,7 +43,7 @@ export const filter = (predicate: (item: IMessage) => boolean) =>
   };
 
 export const distinctUntilChanged = (
-  areDistinct = (a: IMessage, b: IMessage) => a !== b,
+  areDistinct = (a: any, b: any) => a !== b,
 ) => {
   let initial = Object.create(null);
   return async function* _distinctUntilChanged(source) {
@@ -59,7 +56,7 @@ export const distinctUntilChanged = (
   };
 };
 
-export const forEach = (task = (i: IMessage) => {}) => {
+export const forEach = (task = (i: any) => {}) => {
   return async function* _forEach(source) {
     for await (const item of source) {
       await task(item);

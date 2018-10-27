@@ -1,7 +1,6 @@
 import { Component, ViewChild, ChangeDetectorRef, OnInit } from "@angular/core";
 import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
 import {
-  IIteratorStateManagement,
   generateDblClicks,
   // filter,
   flatMapLatest,
@@ -17,8 +16,7 @@ import { ListChildTestComponent } from "../list-child-test/list-child-test.compo
   templateUrl: "./iterator-state-test.component.html",
   styleUrls: ["./iterator-state-test.component.scss"],
 })
-export class IteratorStateTestComponent
-  implements IIteratorStateManagement, OnInit {
+export class IteratorStateTestComponent implements OnInit {
   eventsIterator: IEventsIterator = new EventsIterator(); // Testing API
   aText = "[change me]";
   pointerUp = "NO";

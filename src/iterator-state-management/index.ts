@@ -1,4 +1,3 @@
-export { IIteratorStateManagement } from "./IIteratorStateManagement";
 export {
   startTest,
   map,

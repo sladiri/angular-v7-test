@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy } from "@angular/core";
 import { Observable, Subject, BehaviorSubject, merge } from "rxjs";
 import { takeUntil, tap, map } from "rxjs/operators";
 import { EventsIterator } from "@local/EventsIterator";
-import { IIteratorStateManagement } from "@local/IteratorStateManagement";
 import { prop } from "ramda";
 
 @Component({
@@ -10,8 +9,7 @@ import { prop } from "ramda";
   templateUrl: "./iter-tools-state-test.component.html",
   styleUrls: ["./iter-tools-state-test.component.scss"],
 })
-export class IterToolsStateTestComponent
-  implements OnInit, OnDestroy, IIteratorStateManagement {
+export class IterToolsStateTestComponent implements OnInit, OnDestroy {
   constructor() {
     this.eventsIterator.start([this.updateState.bind(this)]);
     merge(this.click$.pipe(map(this.clicked.bind(this))))
