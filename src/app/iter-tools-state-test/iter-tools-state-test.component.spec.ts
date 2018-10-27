@@ -33,10 +33,20 @@ describe("IterToolsStateTestComponent", () => {
   });
 
   it("should increment the counter", async(async () => {
-    eventsIterator.dispatch(component.clicked(new EventTarget()));
-    eventsIterator.dispatch({ type: "DELETE" });
-    for await (const item of eventsIterator) {
-    }
-    expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(1);
+    // eventsIterator.dispatch(component.clicked(new EventTarget()));
+    component.click$.next(new EventTarget());
+    component.click$.next(new EventTarget());
+    component.click$.next(new EventTarget());
+    // eventsIterator.dispatch({ type: "DELETE" });
+    console.log("a");
+    component.stop$.next(true);
+    await eventsIterator.next();
+    console.log("b");
+    // for await (const item of eventsIterator) {
+    //   console.log("test item", item); // TODO remove loop
+    // }
+    const counter = await component.counter$.pipe(take(1)).toPromise();
+    console.log("test end", counter);
+    expect(counter).toEqual(4);
   }));
 });

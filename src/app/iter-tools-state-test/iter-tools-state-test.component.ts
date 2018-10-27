@@ -11,10 +11,22 @@ import { prop } from "ramda";
 })
 export class IterToolsStateTestComponent implements OnInit, OnDestroy {
   constructor() {
-    this.eventsIterator.start([this.updateState.bind(this)]);
-    merge(this.click$.pipe(map(this.clicked.bind(this))))
+    this.eventsIterator.start([this.notifyStateUpdate.bind(this)]);
+    merge(
+      this.click$.pipe(map(this.clicked.bind(this))),
+      this.stop$.pipe(
+        tap(() => {
+          console.log("stop from Rx", this.nap);
+        }),
+        map(x => ({ type: "DELETE" })),
+      ),
+    )
       .pipe(
-        tap(this.eventsIterator.dispatch.bind(this.eventsIterator)),
+        // tap(this.eventsIterator.dispatch.bind(this.eventsIterator)),
+        tap(item => {
+          console.log("click dispatch", this.nap);
+          this.eventsIterator.dispatch(item);
+        }),
         takeUntil(this.unsubscribe),
       )
       .subscribe();
@@ -33,6 +45,10 @@ export class IterToolsStateTestComponent implements OnInit, OnDestroy {
 
   readonly click$: Subject<EventTarget> = new Subject<EventTarget>();
 
+  readonly stop$: Subject<boolean> = new Subject<boolean>();
+
+  readonly nap: Array<Function> = [];
+
   readonly counter$: Observable<number> = this.state$.pipe(
     map(prop("counter")),
   );
@@ -48,17 +64,22 @@ export class IterToolsStateTestComponent implements OnInit, OnDestroy {
     return { target };
   }
 
-  private async *updateState(source) {
-    for await (const item of source) {
-      if (item.target) {
-        this.state["counter"] += 1;
-      }
+  private async updateState(item) {
+    if (item.target) {
+      this.state["counter"] += 1;
     }
+    console.log("updateState done", item, this.state["counter"]);
   }
 
   private async *notifyStateUpdate(source) {
     for await (const item of source) {
+      await this.updateState(item);
       this._state$.next(this.state);
+      if (this.state.counter === 3) {
+        console.log("auto action", this.state.counter);
+        // this.click$.next(new EventTarget());
+        this.nap.push(() => this.click$.next(new EventTarget()));
+      }
     }
   }
 }
