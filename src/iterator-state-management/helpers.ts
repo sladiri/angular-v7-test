@@ -1,31 +1,26 @@
-import { asyncTakeWhile } from "iter-tools";
-import { TOKEN_AUTOMATIC_ACTION } from "./IIteratorStateManagement";
+import { takeWhile } from "rxjs/operators";
+import { identity } from "ramda";
+import { IIteratorStateManagement } from "./IIteratorStateManagement";
 import { IMessage } from "@local/EventsIterator";
 
 // #region testing
 
-const isAutomaticAction = (item: IMessage) =>
-  item && item.type === TOKEN_AUTOMATIC_ACTION.type;
-
-const testActions = async (
-  source: AsyncIterableIterator<any>,
-  actionsCount: number,
-): Promise<void> => {
-  let i = actionsCount;
-  for await (const item of asyncTakeWhile(
-    _item => i > 1 || isAutomaticAction(_item),
-    source,
-  )) {
-    if (isAutomaticAction(item)) {
-      continue;
-    }
-    i -= 1;
+async function _testActions<State, Message extends IMessage>(
+  stateManager: IIteratorStateManagement<State, Message>,
+  actions: Array<Function>,
+): Promise<void> {
+  for (const action of actions) {
+    action();
+    await stateManager.hasNextAction$.pipe(takeWhile(identity)).toPromise();
   }
-};
+}
 
-export const createTestIterator = (source: AsyncIterableIterator<any>) => (
-  actionsCount: number,
-) => testActions(source, actionsCount);
+export function testActions<State, Message extends IMessage>(
+  stateManager: IIteratorStateManagement<State, Message>,
+) {
+  return (actions: Array<Function>) =>
+    _testActions<State, Message>(stateManager, actions);
+}
 
 // #endgregion
 
@@ -146,7 +141,7 @@ export const generateDblClicks = (dblClickTime = 300) =>
         }
 
         firstClick = false;
-        yield { dblclick: true, type: "--" };
+        yield { dblclick: true };
       }
     }
   };

@@ -5,36 +5,38 @@ import {
   IEventsIterator,
   EventsIterator,
   Transducer,
+  IMessage,
 } from "@local/EventsIterator";
 
-import {
-  IIteratorStateManagement,
-  TOKEN_AUTOMATIC_ACTION,
-} from "./IIteratorStateManagement";
+import { IIteratorStateManagement } from "./IIteratorStateManagement";
 
-export class IteratorStateManagement<State, Message>
+export class IteratorStateManagement<State, Message extends IMessage>
   implements IIteratorStateManagement<State, Message> {
-  private readonly unsubscribe$: Subject<boolean> = new Subject<boolean>();
+  private readonly unsubscribe$: Subject<boolean>;
   private readonly state: State;
   private readonly _state$: Subject<State>;
-  private readonly nextActionPredicate: (item: Message) => Message | void;
+  private readonly nextActionPredicate: () => boolean | void;
   private readonly immutableStateStream: boolean;
 
   readonly state$: Observable<State>;
 
   // Testing API
   readonly eventsIterator: IEventsIterator<Message>;
+  readonly hasNextAction$: Subject<boolean>;
 
   constructor(
     state: State,
     observables: Array<Observable<any>>,
     iterators: Array<Transducer<Message>>,
-    nextActionPredicate?: (item: Message) => Message | void,
+    nextActionPredicate?: () => boolean | void,
     immutableStateStream?: boolean,
   ) {
+    this.unsubscribe$ = new Subject<boolean>();
     this.state = state;
     this._state$ = new BehaviorSubject<any>(this.state);
     this.state$ = this._state$.asObservable();
+
+    this.hasNextAction$ = new Subject<boolean>();
 
     this.eventsIterator = new EventsIterator();
     this.nextActionPredicate = nextActionPredicate;
@@ -57,20 +59,18 @@ export class IteratorStateManagement<State, Message>
     this.unsubscribe$.next(true);
   }
 
-  private async *notifyStateUpdate(source) {
+  private async *notifyStateUpdate(source: AsyncIterable<Message>) {
     for await (const item of source) {
-      // console.log("notifyStateUpdate", item);
       const output = this.immutableStateStream
-        ? JSON.parse(JSON.stringify(this.state))
+        ? (JSON.parse(JSON.stringify(this.state)) as State)
         : this.state;
       this._state$.next(output);
-      if (!this.nextActionPredicate) {
-        yield item;
-        continue;
-      }
-      const nextItem = this.nextActionPredicate(item);
-      const hasNextAction = nextItem === undefined;
-      yield hasNextAction ? TOKEN_AUTOMATIC_ACTION : nextItem;
+
+      const hasNextAction =
+        !!this.nextActionPredicate && !!this.nextActionPredicate();
+      this.hasNextAction$.next(hasNextAction);
+
+      yield item;
     }
   }
 }

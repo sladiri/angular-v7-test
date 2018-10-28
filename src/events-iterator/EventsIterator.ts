@@ -5,7 +5,7 @@ import { IEventsIterator, IMessage, Transducer } from "./IEventsIterator";
 export class EventsIterator<Message extends IMessage>
   implements IEventsIterator<Message> {
   readonly TOKEN_DELETE: Message = Object.assign(Object.create(null), {
-    type: "DELETE",
+    _type: "DELETE",
   });
   readonly TOKEN_TYPE_DEFAULT: string = "DEFAULT_MSG_TYPE";
 
@@ -80,12 +80,8 @@ export class EventsIterator<Message extends IMessage>
     const main = this.pipe(this.transducers);
 
     if (isTest) {
-      this.stop();
-      await this.producer.next();
-      if (!this.queue.isEmpty()) {
-        throw new Error("EventsIterator: Queue was not empty for test.");
-      }
-      this.isDone = false;
+      this.queue.clear(); // Clear actions queued in onInit
+      // TODO: check if hooks other than onInit work like this too
 
       this.testProducer = this._producer();
       this.testProducerIterator = this.testProducer[Symbol.asyncIterator]();
@@ -104,15 +100,23 @@ export class EventsIterator<Message extends IMessage>
     this.dispatch(this.TOKEN_DELETE);
   }
 
-  dispatch(item: Message) {
+  dispatch(item: object) {
     if (this.isDone) {
-      console.warn("EventsIterator done, but dispatch was called");
+      console.warn("EventsIterator done, but dispatch was called.");
       return;
     }
-    if (item.type === undefined) {
-      item.type = this.TOKEN_TYPE_DEFAULT;
+    if (item["_type"] && typeof item["_type"] !== "string") {
+      console.warn(
+        "EventsIterator dispatched item has invalid type:",
+        typeof item["_type"],
+      );
+      return;
     }
-    this.queue.push(item);
+    if (!item["_type"]) {
+      item["_type"] = this.TOKEN_TYPE_DEFAULT;
+    }
+    const message = item as Message;
+    this.queue.push(message);
     if (this.callback) {
       this.callback();
     }
@@ -121,9 +125,9 @@ export class EventsIterator<Message extends IMessage>
   private async *_producer() {
     while (true) {
       while (!this.queue.isEmpty()) {
-        const item: Message = this.queue.shift();
+        const item = this.queue.shift() as Message;
         yield item;
-        if (item.type === "DELETE") {
+        if (item._type === "DELETE") {
           this.isDone = true;
           return;
         }

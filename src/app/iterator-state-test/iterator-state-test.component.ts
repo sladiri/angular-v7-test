@@ -1,6 +1,12 @@
-import { Component, ViewChild, OnInit, ChangeDetectorRef } from "@angular/core";
+import {
+  Component,
+  ViewChild,
+  OnInit,
+  ChangeDetectorRef,
+  OnDestroy,
+} from "@angular/core";
 import { Observable, Subject, fromEvent, merge } from "rxjs";
-import { map, tap, switchMap } from "rxjs/operators";
+import { map, tap, switchMap, share } from "rxjs/operators";
 import { prop } from "ramda";
 
 import {
@@ -10,6 +16,7 @@ import {
 
 import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 
+// #region Actions (reusable)
 const fetchData = () =>
   new Promise(resolve => {
     const val = `${Math.random()}`;
@@ -18,12 +25,33 @@ const fetchData = () =>
     setTimeout(() => resolve(val), delay);
   });
 
+const textUpdated = (value: string) => {
+  return { aText: value };
+};
+
+const textReset = () => {
+  return { aText: null };
+};
+
+const randomItemUpdated = () => {
+  return { itemUpdated: true };
+};
+
+const itemClicked = ([id, name]) => {
+  return { itemUpdated: id };
+};
+
+const dataFetched = fetchedData => {
+  return { dataResponse: fetchedData };
+};
+// #endregion
+
 @Component({
   selector: "app-iterator-state-test",
   templateUrl: "./iterator-state-test.component.html",
   styleUrls: ["./iterator-state-test.component.scss"],
 })
-export class IteratorStateTestComponent implements OnInit {
+export class IteratorStateTestComponent implements OnInit, OnDestroy {
   // #region Input
   readonly textUpdate$: Subject<string> = new Subject<string>();
   readonly textReset$: Subject<void> = new Subject<void>();
@@ -37,21 +65,28 @@ export class IteratorStateTestComponent implements OnInit {
     // TODO: remove duplicate with Rx operator
     fromEvent(document, "pointerup"),
     fromEvent(document, "pointerup").pipe(map(() => ({ pointerup: true }))),
-    this.textUpdate$.pipe(map(this.textUpdated)),
-    this.textReset$.pipe(map(this.textReset.bind(this))),
+    this.textUpdate$.pipe(
+      share(),
+      map(textUpdated),
+    ),
+    this.textReset$.pipe(
+      tap(this.textReset.bind(this)),
+      map(textReset),
+    ),
     this.dataFetch$.pipe(
       switchMap(fetchData),
-      map(this.dataFetched),
+      map(dataFetched),
     ),
-    this.randomItemUpdate$.pipe(map(this.randomItemUpdated)),
-    this.itemClick$.pipe(map(this.itemClicked)),
+    this.randomItemUpdate$.pipe(map(randomItemUpdated)),
+    this.itemClick$.pipe(map(itemClicked)),
     merge(this.randomItemUpdate$, this.itemClick$).pipe(
       tap(() => this.listChild.updates$.next(null)),
     ),
   ];
   // #endregion
 
-  private readonly state: any = Object.assign(Object.create(null), {
+  // #region Public testing API
+  readonly state: any = Object.assign(Object.create(null), {
     aText: "[change me]",
     pointerUp: "NO",
     pointerDown: "NO",
@@ -63,8 +98,6 @@ export class IteratorStateTestComponent implements OnInit {
       { id: 3, name: "placeholder_3" },
     ],
   });
-
-  // Public testing API
   readonly stateManager: IIteratorStateManagement<
     any
   > = new IteratorStateManagement(
@@ -73,6 +106,7 @@ export class IteratorStateTestComponent implements OnInit {
     [this.updateState.bind(this)],
     this.nextActionPredicate.bind(this),
   );
+  // #endregion
 
   // #region Output
   readonly items$: Observable<any> = this.stateManager.state$.pipe(
@@ -90,35 +124,25 @@ export class IteratorStateTestComponent implements OnInit {
   constructor(private readonly changeDetectRef: ChangeDetectorRef) {}
 
   ngOnInit() {
-    this.changeDetectRef.detach(); // Optional controlled render
+    // Optional controlled render
+    this.changeDetectRef.detach();
     this.changeDetectRef.detectChanges();
 
     this.input.nativeElement.focus();
 
+    this.textUpdate$.next("ngOnInit");
+    this.textUpdate$.next("ngOnInit2");
     this.randomItemUpdate$.next();
   }
 
-  textUpdated(value) {
-    return { aText: value };
+  ngOnDestroy() {
+    this.stateManager.unsubscribe();
   }
 
   textReset() {
     const input = this.input.nativeElement;
     input.value = "";
     input.focus();
-    return { aText: null };
-  }
-
-  randomItemUpdated() {
-    return { itemUpdated: true };
-  }
-
-  itemClicked([id, name]) {
-    return { itemUpdated: id };
-  }
-
-  dataFetched(fetchedData) {
-    return { dataResponse: fetchedData };
   }
 
   async *updateState(source) {
@@ -171,14 +195,12 @@ export class IteratorStateTestComponent implements OnInit {
     }
   }
 
-  private nextActionPredicate(item) {
+  private nextActionPredicate() {
     const state = this.state;
 
     if (state.aText === "bingo") {
       this.textReset$.next();
-      return;
+      return true;
     }
-
-    return item;
   }
 }

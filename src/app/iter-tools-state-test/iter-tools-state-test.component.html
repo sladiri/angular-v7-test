@@ -1,7 +1,7 @@
-<p>
-  iter-tools-state-test works!
-</p>
-<button (click)="this.click$.next($event.target)">Click Me</button>
+<h2>
+  AsyncIterableIterator State-management
+</h2>
+<button (click)="this.click$.next('bla')">Click Me</button>
 <p>Counter in parent: {{ state.counter }}</p>
 <app-iter-tools-state-test-child [counter]="counter$ | async"></app-iter-tools-state-test-child>
 <app-iter-tools-state-test-child [counter]="counter2$ | async"></app-iter-tools-state-test-child>

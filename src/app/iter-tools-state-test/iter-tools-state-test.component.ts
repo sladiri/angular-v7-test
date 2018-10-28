@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from "@angular/core";
 import { Observable, Subject } from "rxjs";
-import { map } from "rxjs/operators";
+import { map, tap, share } from "rxjs/operators";
 import { prop } from "ramda";
 
 import {
@@ -8,79 +8,80 @@ import {
   IteratorStateManagement,
 } from "@local/IteratorStateManagement";
 
+// #region Actions (reusable)
+const clicked = () => {
+  // await new Promise(r => setTimeout(r, 100));
+  return { target: "foo" };
+};
+// #endregion
+
 @Component({
   selector: "app-iter-tools-state-test",
   templateUrl: "./iter-tools-state-test.component.html",
   styleUrls: ["./iter-tools-state-test.component.scss"],
 })
 export class IterToolsStateTestComponent implements OnInit, OnDestroy {
-  // Input
-  readonly click$: Subject<EventTarget> = new Subject<EventTarget>();
+  // #region Input
+  readonly click$: Subject<void> = new Subject<void>();
 
-  // Output
-  readonly counter$: Observable<number>;
-  readonly counter2$: Observable<string>;
+  private readonly inputs = [this.click$.pipe(map(clicked))];
+  // #endregion
 
-  // Testing API
-  readonly sm: IIteratorStateManagement<any>;
-
-  private readonly state: any = Object.assign(Object.create(null), {
+  // #region Public testing API
+  readonly state: any = Object.assign(Object.create(null), {
     counter: 0,
   });
+  readonly stateManager: IIteratorStateManagement<
+    any
+  > = new IteratorStateManagement(
+    this.state,
+    this.inputs,
+    [this.updateState.bind(this)],
+    this.nextActionPredicate.bind(this),
+  );
+  // #endregion
 
-  constructor() {
-    this.sm = new IteratorStateManagement(
-      this.state,
-      [this.click$.pipe(map(IterToolsStateTestComponent.clicked))],
-      [this.updateState.bind(this)],
-      this.nextActionPredicate.bind(this),
-    );
-
-    this.counter$ = this.sm.state$.pipe(map(prop("counter")));
-    this.counter2$ = this.sm.state$.pipe(
-      map(prop("counter")),
-      map((x: number) => x * 2),
-      map(x => `[${x}-second]`),
-    );
-  }
-
-  static async clicked(target: EventTarget) {
-    // await new Promise(r => setTimeout(r, 100));
-    return { target };
-  }
+  // #region Output
+  readonly counter$: Observable<number> = this.stateManager.state$.pipe(
+    map(prop("counter")),
+  );
+  readonly counter2$: Observable<string> = this.stateManager.state$.pipe(
+    map(prop("counter")),
+    map((x: number) => x * 2),
+    map(x => `[${x}-second]`),
+  );
+  // #endregion
 
   ngOnInit() {
-    this.click$.next(new EventTarget());
-    this.click$.next(new EventTarget());
-    this.click$.next(new EventTarget());
+    this.click$.next();
+    this.click$.next();
   }
 
   ngOnDestroy() {
-    this.sm.unsubscribe();
+    this.stateManager.unsubscribe();
   }
 
   private async *updateState(source) {
     for await (const item of source) {
       if (item.target) {
-        this.state["counter"] += 1;
+        this.state.counter += 1;
       }
 
       yield item;
     }
   }
 
-  private nextActionPredicate(item) {
+  private nextActionPredicate() {
     const state = this.state;
 
     if (state.counter === 3) {
-      this.click$.next(new EventTarget());
-      return;
+      this.click$.next();
+      return true;
     }
     if (state.counter === 10) {
-      this.click$.next(new EventTarget());
-      this.click$.next(new EventTarget());
-      return;
+      this.click$.next();
+      this.click$.next();
+      return true;
     }
-    return item;
   }
 }

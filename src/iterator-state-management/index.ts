@@ -1,12 +1,9 @@
-export {
-  IIteratorStateManagement,
-  TOKEN_AUTOMATIC_ACTION,
-} from "./IIteratorStateManagement";
+export { IIteratorStateManagement } from "./IIteratorStateManagement";
 
 export { IteratorStateManagement } from "./IteratorStateManagement";
 
 export {
-  createTestIterator,
+  testActions,
   map,
   filter,
   take,

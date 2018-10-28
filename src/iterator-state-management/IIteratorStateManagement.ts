@@ -1,10 +1,13 @@
 import { Observable } from "rxjs";
 import { IMessage, IEventsIterator } from "@local/EventsIterator";
 
-export const TOKEN_AUTOMATIC_ACTION: IMessage = { type: "AUTOMATIC_ACTION" };
-
-export interface IIteratorStateManagement<State, Message = IMessage> {
+export interface IIteratorStateManagement<
+  State,
+  Message extends IMessage = IMessage
+> {
   state$: Observable<State>;
+  hasNextAction$: Observable<boolean>;
   unsubscribe: () => void;
+  // Testing API
   eventsIterator: IEventsIterator<Message>;
 }
