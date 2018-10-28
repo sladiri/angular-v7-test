@@ -1,6 +1,6 @@
-import { Component, ViewChild, OnInit } from "@angular/core";
+import { Component, ViewChild, OnInit, ChangeDetectorRef } from "@angular/core";
 import { Observable, Subject, fromEvent, merge } from "rxjs";
-import { map, tap, distinctUntilChanged } from "rxjs/operators";
+import { map, tap, switchMap } from "rxjs/operators";
 import { prop } from "ramda";
 
 import {
@@ -10,24 +10,46 @@ import {
 
 import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 
+const fetchData = () =>
+  new Promise(resolve => {
+    const val = `${Math.random()}`;
+    const delay = Math.floor(Math.random() * (2000 - 200 + 1)) + 200;
+    console.log("fetching with delay ...", val, delay);
+    setTimeout(() => resolve(val), delay);
+  });
+
 @Component({
   selector: "app-iterator-state-test",
   templateUrl: "./iterator-state-test.component.html",
   styleUrls: ["./iterator-state-test.component.scss"],
 })
 export class IteratorStateTestComponent implements OnInit {
-  // Input
-  readonly textUpdate$: Subject<EventTarget> = new Subject<EventTarget>();
-  readonly textReset$: Subject<EventTarget> = new Subject<EventTarget>();
-  readonly dataFetch$: Subject<EventTarget> = new Subject<EventTarget>();
-  readonly randomItemUpdate$: Subject<EventTarget> = new Subject<EventTarget>();
-  readonly itemClick$: Subject<EventTarget> = new Subject<EventTarget>();
+  // #region Input
+  readonly textUpdate$: Subject<string> = new Subject<string>();
+  readonly textReset$: Subject<void> = new Subject<void>();
+  readonly dataFetch$: Subject<string> = new Subject<string>();
+  readonly randomItemUpdate$: Subject<void> = new Subject<void>();
+  readonly itemClick$: Subject<Array<any>> = new Subject<Array<any>>();
 
-  // Output
-  readonly items$: Observable<any>;
-
-  // Testing API
-  readonly sm: IIteratorStateManagement<any>;
+  private readonly inputs = [
+    // TODO: try to use iterator (eg. genDblClick)
+    fromEvent(document, "pointerdown").pipe(map(() => ({ pointerdown: true }))),
+    // TODO: remove duplicate with Rx operator
+    fromEvent(document, "pointerup"),
+    fromEvent(document, "pointerup").pipe(map(() => ({ pointerup: true }))),
+    this.textUpdate$.pipe(map(this.textUpdated)),
+    this.textReset$.pipe(map(this.textReset.bind(this))),
+    this.dataFetch$.pipe(
+      switchMap(fetchData),
+      map(this.dataFetched),
+    ),
+    this.randomItemUpdate$.pipe(map(this.randomItemUpdated)),
+    this.itemClick$.pipe(map(this.itemClicked)),
+    merge(this.randomItemUpdate$, this.itemClick$).pipe(
+      tap(() => this.listChild.updates$.next(null)),
+    ),
+  ];
+  // #endregion
 
   private readonly state: any = Object.assign(Object.create(null), {
     aText: "[change me]",
@@ -42,59 +64,38 @@ export class IteratorStateTestComponent implements OnInit {
     ],
   });
 
-  @ViewChild(ListChildTestComponent)
-  private readonly listChild: ListChildTestComponent;
+  // Public testing API
+  readonly stateManager: IIteratorStateManagement<
+    any
+  > = new IteratorStateManagement(
+    this.state,
+    this.inputs,
+    [this.updateState.bind(this)],
+    this.nextActionPredicate.bind(this),
+  );
+
+  // #region Output
+  readonly items$: Observable<any> = this.stateManager.state$.pipe(
+    map(prop("listItems")),
+    map((items: Array<any>) => [...items]),
+  );
 
   @ViewChild("input")
   private readonly input;
 
-  constructor() {
-    this.sm = new IteratorStateManagement(
-      this.state,
-      [
-        fromEvent(document, "pointerdown").pipe(
-          map(() => ({ pointerdown: true })),
-        ),
-        // TODO: remove duplicate with Rx operator
-        fromEvent(document, "pointerup"),
-        fromEvent(document, "pointerup").pipe(map(() => ({ pointerup: true }))),
-        this.textUpdate$.pipe(map(this.textUpdated.bind(this))),
-        this.textReset$.pipe(map(this.textReset.bind(this))),
-        this.dataFetch$.pipe(map(this.dataFetched.bind(this))),
-        this.randomItemUpdate$.pipe(map(this.randomItemUpdated.bind(this))),
-        this.itemClick$.pipe(map(this.itemClicked.bind(this))),
-        merge(this.randomItemUpdate$, this.itemClick$).pipe(
-          tap(() => this.listChild.updates$.next(null)),
-        ),
-      ],
-      [this.updateState.bind(this)],
-      this.nextActionPredicate.bind(this),
-    );
+  @ViewChild(ListChildTestComponent)
+  private readonly listChild: ListChildTestComponent;
+  // #endregion
 
-    this.items$ = this.sm.state$.pipe(
-      map(prop("listItems")),
-      map((items: Array<any>) => [...items]),
-    );
-
-    //
-    // this.changeDetectRef.detach();
-
-    // TODO: Possible "threading" in eventsIterator?
-    // TODO: Is it a good pattern?
-    // this.generateFetchAction.start([
-    // asyncFilter(i => i.fetchedData),
-    // filter(i => i.fetchedData),
-    // distinctUntilChanged((a: IMessage, b: IMessage) => a.fetchedData !== b.fetchedData),
-    // flatMapLatest(this.fetchData),
-    // map(dataResponse => ({ dataResponse })),
-    // asyncMap(dataResponse => ({ dataResponse })),
-    // forEach(i => this.eventsIterator.dispatch(i)),
-    // asyncTap(i => this.eventsIterator.dispatch(i)), // type error bug?
-    // ]);
-  }
+  constructor(private readonly changeDetectRef: ChangeDetectorRef) {}
 
   ngOnInit() {
+    this.changeDetectRef.detach(); // Optional controlled render
+    this.changeDetectRef.detectChanges();
+
     this.input.nativeElement.focus();
+
+    this.randomItemUpdate$.next();
   }
 
   textUpdated(value) {
@@ -116,10 +117,8 @@ export class IteratorStateTestComponent implements OnInit {
     return { itemUpdated: id };
   }
 
-  dataFetched() {
-    const fetchedData = `${Math.random()}`;
-    // const fetchedData = 42;
-    return { fetchedData };
+  dataFetched(fetchedData) {
+    return { dataResponse: fetchedData };
   }
 
   async *updateState(source) {
@@ -167,6 +166,7 @@ export class IteratorStateTestComponent implements OnInit {
         state.listItems[itemUpdated]["name"] = name;
       }
 
+      this.changeDetectRef.detectChanges();
       yield item;
     }
   }
@@ -180,14 +180,5 @@ export class IteratorStateTestComponent implements OnInit {
     }
 
     return item;
-  }
-
-  private fetchData(): Promise<string> {
-    return new Promise(resolve => {
-      const val = `${Math.random()}`;
-      const delay = Math.floor(Math.random() * (2000 - 100 + 1)) + 100;
-      console.log("fetching with delay ...", val, delay);
-      setTimeout(() => resolve(val), delay);
-    });
   }
 }
