@@ -1,6 +1,6 @@
 import { async, ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { IEventsIterator, IMessage } from "@local/EventsIterator";
+import { IQueuedIterator, IMessage } from "@local/QueuedIterator";
 import { testActions } from "@local/IteratorStateManagement";
 
 import { IteratorStateTestComponent } from "./iterator-state-test.component";
@@ -27,9 +27,7 @@ describe("IteratorStateTestComponent", () => {
     fixture = TestBed.createComponent(IteratorStateTestComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    await (component.stateManager.eventsIterator.start() as Promise<
-      IEventsIterator<IMessage>
-    >);
+    component.stateManager.eventsIterator.clearQueue(); // Clear actions queued in onInit
     waitForActions = testActions(component.stateManager);
   });
 

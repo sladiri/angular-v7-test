@@ -1,7 +1,7 @@
 import { takeWhile } from "rxjs/operators";
 import { identity } from "ramda";
 import { IIteratorStateManagement } from "./IIteratorStateManagement";
-import { IMessage } from "@local/EventsIterator";
+import { IMessage } from "@local/QueuedIterator";
 
 // #region testing
 

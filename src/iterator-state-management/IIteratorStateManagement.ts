@@ -1,5 +1,5 @@
 import { Observable } from "rxjs";
-import { IMessage, IEventsIterator } from "@local/EventsIterator";
+import { IMessage, IQueuedIterator } from "@local/QueuedIterator";
 
 export interface IIteratorStateManagement<
   State,
@@ -9,5 +9,5 @@ export interface IIteratorStateManagement<
   hasNextAction$: Observable<boolean>;
   unsubscribe: () => void;
   // Testing API
-  eventsIterator: IEventsIterator<Message>;
+  eventsIterator: IQueuedIterator<Message>;
 }

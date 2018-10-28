@@ -2,11 +2,11 @@ import { Observable, Subject, BehaviorSubject, merge } from "rxjs";
 import { map, tap, takeUntil } from "rxjs/operators";
 
 import {
-  IEventsIterator,
-  EventsIterator,
+  IQueuedIterator,
+  QueuedIterator,
   Transducer,
   IMessage,
-} from "@local/EventsIterator";
+} from "@local/QueuedIterator";
 
 import { IIteratorStateManagement } from "./IIteratorStateManagement";
 
@@ -21,7 +21,7 @@ export class IteratorStateManagement<State, Message extends IMessage>
   readonly state$: Observable<State>;
 
   // Testing API
-  readonly eventsIterator: IEventsIterator<Message>;
+  readonly eventsIterator: IQueuedIterator<Message>;
   readonly hasNextAction$: Subject<boolean>;
 
   constructor(
@@ -38,7 +38,7 @@ export class IteratorStateManagement<State, Message extends IMessage>
 
     this.hasNextAction$ = new Subject<boolean>();
 
-    this.eventsIterator = new EventsIterator();
+    this.eventsIterator = new QueuedIterator();
     this.nextActionPredicate = nextActionPredicate;
     this.immutableStateStream = immutableStateStream || false;
     this.eventsIterator.start([
