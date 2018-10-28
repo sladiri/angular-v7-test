@@ -1,14 +1,13 @@
-import { Component, ViewChild, ChangeDetectorRef, OnInit } from "@angular/core";
-import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
+import { Component, ViewChild, OnInit } from "@angular/core";
+import { Observable, Subject, fromEvent } from "rxjs";
+import { map, tap } from "rxjs/operators";
+import { prop } from "ramda";
+
 import {
-  generateDblClicks,
-  // filter,
-  flatMapLatest,
-  distinctUntilChanged,
-  // map,
-  forEach,
+  IIteratorStateManagement,
+  IteratorStateManagement,
 } from "@local/IteratorStateManagement";
-import { asyncFilter, asyncMap } from "iter-tools";
+
 import { ListChildTestComponent } from "../list-child-test/list-child-test.component";
 
 @Component({
@@ -17,184 +16,178 @@ import { ListChildTestComponent } from "../list-child-test/list-child-test.compo
   styleUrls: ["./iterator-state-test.component.scss"],
 })
 export class IteratorStateTestComponent implements OnInit {
-  eventsIterator: IEventsIterator = new EventsIterator(); // Testing API
-  aText = "[change me]";
-  pointerUp = "NO";
-  pointerDown = "NO";
-  dataResponse = "[NO DATA]";
-  listItems = [
-    { id: 0, name: "placeholder_0" },
-    { id: 1, name: "placeholder_1" },
-    { id: 2, name: "placeholder_2" },
-    { id: 3, name: "placeholder_3" },
-  ];
+  // Input
+  readonly textUpdate$: Subject<EventTarget> = new Subject<EventTarget>();
+  readonly textReset$: Subject<EventTarget> = new Subject<EventTarget>();
+  readonly dataFetch$: Subject<EventTarget> = new Subject<EventTarget>();
+  readonly randomItemUpdate$: Subject<EventTarget> = new Subject<EventTarget>();
+  readonly itemClick$: Subject<EventTarget> = new Subject<EventTarget>();
+
+  // Output
+  readonly items$: Observable<any>;
+
+  // Testing API
+  readonly sm: IIteratorStateManagement<any>;
+
+  private readonly state: any = Object.assign(Object.create(null), {
+    aText: "[change me]",
+    pointerUp: "NO",
+    pointerDown: "NO",
+    dataResponse: "[NO DATA]",
+    listItems: [
+      { id: 0, name: "placeholder_0" },
+      { id: 1, name: "placeholder_1" },
+      { id: 2, name: "placeholder_2" },
+      { id: 3, name: "placeholder_3" },
+    ],
+  });
+
   @ViewChild(ListChildTestComponent)
-  listChild: ListChildTestComponent;
+  private readonly listChild: ListChildTestComponent;
+
   @ViewChild("input")
   private readonly input;
-  private generateFetchAction: IEventsIterator = new EventsIterator();
 
-  constructor(private readonly changeDetectRef: ChangeDetectorRef) {
-    this.changeDetectRef.detach();
-    this.eventsIterator.start([
-      generateDblClicks(),
-      // this.dummyTransducer,
-      this.updateState.bind(this),
-      this.notifyStateUpdate.bind(this),
-      this.automaticNextActions.bind(this),
-      // this.dummyTransducer2,
-    ]);
-    document.addEventListener(
-      "pointerdown",
-      event => {
-        this.eventsIterator.dispatch({ pointerdown: true });
-      },
-      false,
+  // private generateFetchAction: IEventsIterator<IMessage> = new EventsIterator();
+
+  constructor() {
+    this.sm = new IteratorStateManagement(
+      this.state,
+      [
+        fromEvent(document, "pointerdown").pipe(
+          map(() => ({ pointerdown: true })),
+        ),
+        // TODO: optimise?
+        fromEvent(document, "pointerup"),
+        fromEvent(document, "pointerup").pipe(map(() => ({ pointerup: true }))),
+        this.textUpdate$.pipe(map(this.textUpdated.bind(this))),
+        this.textReset$.pipe(map(this.textReset.bind(this))),
+        this.dataFetch$.pipe(map(this.dataFetched.bind(this))),
+        this.randomItemUpdate$.pipe(map(this.randomItemUpdated.bind(this))),
+        this.itemClick$.pipe(map(this.itemClicked.bind(this))),
+      ],
+      [this.updateState.bind(this)],
+      this.nextActionPredicate.bind(this),
     );
-    document.addEventListener(
-      "pointerup",
-      event => {
-        this.eventsIterator.dispatch(event);
-        this.eventsIterator.dispatch({ pointerup: true });
-      },
-      false,
+
+    this.items$ = this.sm.state$.pipe(
+      map(prop("listItems")),
+      tap(x => {
+        // console.log("tap items$", x.map(y => y.name));
+      }),
     );
+
+    //
+    // this.changeDetectRef.detach();
+
     // TODO: Possible "threading" in eventsIterator?
     // TODO: Is it a good pattern?
-    this.generateFetchAction.start([
-      asyncFilter(i => i.fetchedData),
-      // filter(i => i.fetchedData),
-      distinctUntilChanged((a, b) => a.fetchedData !== b.fetchedData),
-      flatMapLatest(this.fetchData),
-      // map(dataResponse => ({ dataResponse })),
-      asyncMap(dataResponse => ({ dataResponse })),
-      forEach(i => this.eventsIterator.dispatch(i)),
-      // asyncTap(i => this.eventsIterator.dispatch(i)), // type error bug?
-    ]);
+    // this.generateFetchAction.start([
+    //   asyncFilter(i => i.fetchedData),
+    //   // filter(i => i.fetchedData),
+    //   distinctUntilChanged((a, b) => a.fetchedData !== b.fetchedData),
+    //   flatMapLatest(this.fetchData),
+    //   // map(dataResponse => ({ dataResponse })),
+    //   asyncMap(dataResponse => ({ dataResponse })),
+    //   forEach(i => this.eventsIterator.dispatch(i)),
+    //   // asyncTap(i => this.eventsIterator.dispatch(i)), // type error bug?
+    // ]);
   }
 
   ngOnInit() {
-    this.eventsIterator.dispatch({}); // Initial render
+    // this.eventsIterator.dispatch({}); // Initial render
     // Initialise children with full list to optimise change, but Angular can help us, see below in notifyStateUpdate
     // this.listChild.itemsUpdated(this.listItems);
     this.input.nativeElement.focus();
   }
 
   textUpdated(value) {
-    this.eventsIterator.dispatch({ aText: value });
+    return { aText: value };
   }
 
   textReset() {
-    this.eventsIterator.dispatch({ aText: null });
     const input = this.input.nativeElement;
     input.value = "";
     input.focus();
+    return { aText: null };
   }
 
   randomItemUpdated() {
-    this.eventsIterator.dispatch({ itemUpdated: true });
+    return { itemUpdated: true };
   }
 
   itemClicked([id, name]) {
-    this.eventsIterator.dispatch({ itemUpdated: id });
+    return { itemUpdated: id };
   }
 
   dataFetched() {
     const fetchedData = `${Math.random()}`;
     // const fetchedData = 42;
-    this.generateFetchAction.dispatch({ fetchedData });
+    // this.generateFetchAction.dispatch();
   }
 
   async *updateState(source) {
+    const state = this.state;
+
     for await (const item of source) {
+      // console.log("updateState", item);
+
       const { aText } = item;
       if (typeof aText === "string") {
-        this.aText = aText;
+        state.aText = aText;
       }
       if (aText === null) {
-        this.aText = "[change me]";
+        state.aText = "[change me]";
       }
 
       const { pointerdown, pointerup, dblclick } = item;
       if (pointerdown) {
-        this.pointerDown = "YES";
+        state.pointerDown = "YES";
       } else {
-        this.pointerDown = "NO";
+        state.pointerDown = "NO";
       }
 
       if (pointerup) {
-        this.pointerUp = "YES";
+        state.pointerUp = "YES";
       } else {
-        this.pointerUp = "NO";
+        state.pointerUp = "NO";
       }
 
       if (dblclick) {
-        this.aText = this.aText === "foo" ? "bar" : "foo";
+        state.aText = state.aText === "foo" ? "bar" : "foo";
       }
 
       const { dataResponse } = item;
       if (dataResponse) {
-        this.dataResponse = `${dataResponse}`;
+        state.dataResponse = `${dataResponse}`;
       }
 
       const { itemUpdated } = item;
       if (itemUpdated === true) {
-        const index = Math.floor(Math.random() * this.listItems.length);
+        const index = Math.floor(Math.random() * state.listItems.length);
         const name = `${Math.random()}`;
-        this.listItems[index]["name"] = name;
+        state.listItems[index]["name"] = name;
         // If we make sure to not to change items, we can let Angular optimise re-renders
         // item = { listItemUpdate: { index, name } };
       }
       if (Number.isInteger(itemUpdated)) {
         const name = `${Math.random()}`;
-        this.listItems[itemUpdated]["name"] = name;
+        state.listItems[itemUpdated]["name"] = name;
       }
 
       yield item;
     }
   }
 
-  private async *dummyTransducer(source) {
-    for await (const item of source) {
-      console.log("dummyTransducer", item.type || item);
-      yield item;
+  private nextActionPredicate(item) {
+    const state = this.state;
+
+    if (state.aText === "bingo") {
+      this.textReset$.next();
+      return;
     }
-  }
 
-  private async *dummyTransducer2(source) {
-    for await (const item of source) {
-      console.log("dummyTransducer2", item.type || item);
-      yield item;
-    }
-  }
-
-  private async *notifyStateUpdate(source) {
-    let items;
-    for await (const item of source) {
-      this.changeDetectRef.detectChanges();
-
-      // trackBy prevents re-render of all list items
-      // if (item.listItemUpdate) {
-      // this.listChild.itemUpdated(item.listItemUpdate);
-      // this.listChild.itemsUpdated(JSON.parse(JSON.stringify(this.listItems)));
-      // }
-      const newitems = JSON.stringify(this.listItems);
-      if (!items || items !== newitems) {
-        this.listChild.itemsUpdated(this.listItems);
-        items = newitems;
-      }
-
-      yield item;
-    }
-  }
-
-  private async *automaticNextActions(source) {
-    for await (const item of source) {
-      if (this.aText === "bingo") {
-        this.textReset();
-      }
-      yield item;
-    }
+    return item;
   }
 
   private fetchData() {

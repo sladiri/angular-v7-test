@@ -2,20 +2,20 @@
 
 <div class="section">
   <label>Test Input</label>
-  <input #input (keyup)="textUpdated(input.value)" placeholder="type here" />
+  <input #input (keyup)="textUpdate$.next(input.value)" placeholder="type here" />
   <!-- could use (keyup.enter) for example -->
-  <button (click)="textReset()">Reset</button>
-  <p>{{ aText }}</p>
-  <p>PointerDown: {{ pointerDown }}</p>
-  <p>PointerUp: {{ pointerUp }}</p>
+  <button (click)="textReset$.next()">Reset</button>
+  <p>{{ state.aText }}</p>
+  <p>PointerDown: {{ state.pointerDown }}</p>
+  <p>PointerUp: {{ state.pointerUp }}</p>
 </div>
 
 <div class="section">
   <label>Test Cancellable</label>
-  <p>{{ dataResponse }} <button (click)="dataFetched()">Load Data</button></p>
+  <p>{{ state.dataResponse }} <button (click)="dataFetch$.next()">Load Data</button></p>
 </div>
 
 <div class="section">
-  <button (click)="randomItemUpdated()">Update Item</button>
-  <app-list-child-test (itemClicked)="itemClicked($event)"></app-list-child-test>
+  <button (click)="randomItemUpdate$.next()">Update Item</button>
+  <app-list-child-test [items]="items$ | async" (itemClicked)="itemClick$.next($event)"></app-list-child-test>
 </div>

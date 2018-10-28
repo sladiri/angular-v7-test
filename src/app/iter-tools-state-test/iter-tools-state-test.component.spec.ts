@@ -4,13 +4,14 @@ import { take } from "rxjs/operators";
 import { IterToolsStateTestComponent } from "./iter-tools-state-test.component";
 import { IterToolsStateTestChildComponent } from "../iter-tools-state-test-child/iter-tools-state-test-child.component";
 
-import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
-import { startTest } from "@local/IteratorStateManagement";
+import { IEventsIterator, IMessage } from "@local/EventsIterator";
+import { createTestIterator } from "@local/IteratorStateManagement";
 
 describe("IterToolsStateTestComponent", () => {
   let fixture: ComponentFixture<IterToolsStateTestComponent>;
   let component: IterToolsStateTestComponent;
-  let eventsIterator: IEventsIterator;
+  let eventsIterator: IEventsIterator<IMessage>;
+  let testIterator: (actionsCount: number) => Promise<void>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -24,7 +25,10 @@ describe("IterToolsStateTestComponent", () => {
   beforeEach(async () => {
     fixture = TestBed.createComponent(IterToolsStateTestComponent);
     component = fixture.componentInstance;
-    eventsIterator = await startTest(component);
+    eventsIterator = await (component.sm.eventsIterator.start() as Promise<
+      IEventsIterator<IMessage>
+    >);
+    testIterator = createTestIterator(eventsIterator);
     fixture.detectChanges();
   });
 
@@ -33,20 +37,81 @@ describe("IterToolsStateTestComponent", () => {
   });
 
   it("should increment the counter", async(async () => {
-    // eventsIterator.dispatch(component.clicked(new EventTarget()));
-    component.click$.next(new EventTarget());
-    component.click$.next(new EventTarget());
-    component.click$.next(new EventTarget());
-    // eventsIterator.dispatch({ type: "DELETE" });
-    console.log("a");
-    component.stop$.next(true);
-    await eventsIterator.next();
-    console.log("b");
-    // for await (const item of eventsIterator) {
-    //   console.log("test item", item); // TODO remove loop
-    // }
-    const counter = await component.counter$.pipe(take(1)).toPromise();
-    console.log("test end", counter);
-    expect(counter).toEqual(4);
+    await testIterator(
+      [
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+      ].length,
+    );
+    expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(2);
+  }));
+
+  it("should increment the counter with NAP 1/5", async(async () => {
+    await testIterator(
+      [
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+      ].length,
+    );
+    expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(4);
+  }));
+
+  it("should increment the counter with NAP 2/5", async(async () => {
+    await testIterator(
+      [
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+      ].length,
+    );
+    expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(5);
+  }));
+
+  it("should increment the counter with NAP 3/5", async(async () => {
+    await testIterator(
+      [
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+      ].length,
+    );
+    expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(6);
+  }));
+
+  it("should increment the counter with NAP 4/5", async(async () => {
+    await testIterator(
+      [
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+      ].length,
+    );
+    expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(8);
+  }));
+
+  it("should increment the counter with NAP 5/5", async(async () => {
+    await testIterator(
+      [
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+        component.click$.next(new EventTarget()),
+      ].length,
+    );
+    expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(12);
   }));
 });

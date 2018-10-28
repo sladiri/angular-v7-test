@@ -2,37 +2,37 @@ import Deque from "double-ended-queue";
 import { IEventsIterator, IMessage, Transducer } from "./IEventsIterator";
 
 // https://medium.com/dailyjs/async-generators-as-an-alternative-to-state-management-f9871390ffca
-export class EventsIterator implements IEventsIterator {
-  static readonly TOKEN_DELETE: string = "DELETE";
-  static readonly DEFAULT_TYPE: string = "--";
+export class EventsIterator<Message extends IMessage>
+  implements IEventsIterator<Message> {
+  readonly TOKEN_DELETE: Message = Object.assign(Object.create(null), {
+    type: "DELETE",
+  });
+  readonly TOKEN_TYPE_DEFAULT: string = "DEFAULT_MSG_TYPE";
 
-  transducers: Array<Transducer>;
+  private readonly queue: any;
+  private readonly producer: AsyncIterableIterator<Message>;
 
-  private readonly messageQueueCapacity: number;
-  private queue: any;
-  private callback: () => void;
-  private isDone: Boolean = false;
+  private callback: null | (() => void) = null;
+  private isDone = false;
 
-  private producer: AsyncIterableIterator<IMessage>;
-  private outlet: AsyncIterableIterator<IMessage>;
-  private outletIterator: AsyncIterableIterator<IMessage>;
+  private transducers: Array<Transducer<Message>>; // Test API
+  private testProducer: AsyncIterableIterator<Message>;
+  private testProducerIterator: AsyncIterableIterator<Message>;
 
-  static pipe(transducers: Array<Transducer> = []): Transducer {
+  pipe(transducers: Array<Transducer<Message>> = []): Transducer<Message> {
     const pipeline = (source, dispatch) => {
       for (const t of transducers) {
-        source = t(EventsIterator.share(source), dispatch);
+        source = t(this.share(source), dispatch);
       }
       return source;
     };
     return pipeline;
   }
 
-  static share(
-    iterable: AsyncIterable<IMessage>,
-  ): AsyncIterableIterator<IMessage> {
+  share(iterable: AsyncIterable<Message>): AsyncIterableIterator<Message> {
     const iterator = iterable[Symbol.asyncIterator]();
     return Object.assign(Object.create(null), {
-      next(value: IMessage) {
+      next(value: Message) {
         return iterator.next(value);
       },
       [Symbol.asyncIterator]() {
@@ -42,108 +42,87 @@ export class EventsIterator implements IEventsIterator {
     });
   }
 
-  private static async *_testTransducer(source) {
-    for await (const item of source) {
-      yield item;
-    }
-  }
-
   constructor(messageQueueCapacity: number = 2048) {
     if (!Number.isSafeInteger(messageQueueCapacity)) {
       throw new Error(
         "EventsIterator: Message queue capacity must be safe integer.",
       );
     }
-    this.messageQueueCapacity = messageQueueCapacity;
-  }
-
-  next() {
-    if (!this.outlet) {
-      throw new Error("EventsIterator: No iterable defined, was start called?");
-    }
-    return this.outlet.next();
-  }
-
-  [Symbol.asyncIterator]() {
-    if (!this.outletIterator) {
-      throw new Error("EventsIterator: No iterator defined, was start called?");
-    }
-    return this.outletIterator;
-  }
-
-  async start(
-    transducers: Array<Transducer>,
-    isTest = false,
-    messageQueueCapacity = this.messageQueueCapacity,
-  ) {
-    if (transducers.length < 1) {
-      console.warn("EventsIterator: Start has no transducer");
-    }
     this.queue = new Deque(messageQueueCapacity);
     this.producer = this._producer();
-    if (isTest) {
-      const testTransducer = _source => {
-        this.outlet = EventsIterator._testTransducer(_source);
-        this.outletIterator = this.outlet[Symbol.asyncIterator]();
-        return this.outlet;
-      };
-      transducers = [...transducers, testTransducer];
+  }
+
+  // Test API
+  next() {
+    if (!this.testProducer) {
+      throw new Error("EventsIterator: No iterable defined, was start called?");
     }
-    const main = EventsIterator.pipe(transducers);
+    return this.testProducer.next();
+  }
+
+  // Test API
+  [Symbol.asyncIterator]() {
+    if (!this.testProducerIterator) {
+      throw new Error("EventsIterator: No iterator defined, was start called?");
+    }
+    return this.testProducerIterator;
+  }
+
+  async start(transducers?: Array<Transducer<Message>>) {
+    const isTest = !Array.isArray(transducers);
+
+    if (!isTest && transducers) {
+      if (transducers.length < 1) {
+        console.warn("EventsIterator: Start has no transducer");
+      }
+      this.transducers = transducers;
+    }
+    const main = this.pipe(this.transducers);
+
+    if (isTest) {
+      this.stop();
+      await this.producer.next();
+      if (!this.queue.isEmpty()) {
+        throw new Error("EventsIterator: Queue was not empty for test.");
+      }
+      this.isDone = false;
+
+      this.testProducer = this._producer();
+      this.testProducerIterator = this.testProducer[Symbol.asyncIterator]();
+
+      const testSource = main(this.testProducer, this.dispatch.bind(this));
+      return testSource;
+    }
+
     const source = main(this.producer, this.dispatch.bind(this));
-    if (isTest) {
-      return this;
-    }
-    this.transducers = transducers;
     for await (const item of source) {
-      // console.log(
-      //   "end",
-      //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-      // );
-      // await new Promise(r => setTimeout(r, 10));
+      // console.log("EventsIterator: consumed item", item);
     }
   }
 
   stop() {
-    this.dispatch({ type: EventsIterator.TOKEN_DELETE });
+    this.dispatch(this.TOKEN_DELETE);
   }
 
-  dispatch(item: IMessage) {
-    if (item.type === undefined) {
-      item.type = EventsIterator.DEFAULT_TYPE;
-    }
+  dispatch(item: Message) {
     if (this.isDone) {
-      console.warn(
-        "EventsIterator done, but dispatch was called with item:",
-        item,
-      );
+      console.warn("EventsIterator done, but dispatch was called");
       return;
+    }
+    if (item.type === undefined) {
+      item.type = this.TOKEN_TYPE_DEFAULT;
     }
     this.queue.push(item);
     if (this.callback) {
       this.callback();
     }
-    // console.log(
-    //   "queue",
-    //   this.queue.length,
-    //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-    // );
   }
 
   private async *_producer() {
     while (true) {
       while (!this.queue.isEmpty()) {
-        const item = this.queue.shift();
-        // console.log(
-        //   "_producer 0",
-        //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-        // );
+        const item: Message = this.queue.shift();
         yield item;
-        // console.log(
-        //   "_producer 1",
-        //   item.type === EventsIterator.DEFAULT_TYPE ? item : item.type,
-        // );
-        // console.log("_producer 1");
         if (item.type === "DELETE") {
           this.isDone = true;
           return;

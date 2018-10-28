@@ -1,13 +1,33 @@
-import { IEventsIterator, EventsIterator } from "@local/EventsIterator";
+import { asyncTakeWhile } from "iter-tools";
+import { TOKEN_AUTOMATIC_ACTION } from "./IIteratorStateManagement";
+import { IMessage } from "@local/EventsIterator";
 
-export const startTest = (component: any): Promise<EventsIterator> => {
-  const eventsIterator: IEventsIterator = new EventsIterator();
-  const transducers = component.eventsIterator.transducers;
-  component.eventsIterator = eventsIterator;
-  return component.eventsIterator.start(transducers, true) as Promise<
-    EventsIterator
-  >;
+// #region testing
+
+const isAutomaticAction = (item: IMessage) =>
+  item && item.type === TOKEN_AUTOMATIC_ACTION.type;
+
+const testActions = async (
+  source: AsyncIterableIterator<any>,
+  actionsCount: number,
+): Promise<void> => {
+  let i = actionsCount;
+  for await (const item of asyncTakeWhile(
+    _item => i > 1 || isAutomaticAction(_item),
+    source,
+  )) {
+    if (isAutomaticAction(item)) {
+      continue;
+    }
+    i -= 1;
+  }
 };
+
+export const createTestIterator = (source: AsyncIterableIterator<any>) => (
+  actionsCount: number,
+) => testActions(source, actionsCount);
+
+// #endgregion
 
 // #region iterators
 
