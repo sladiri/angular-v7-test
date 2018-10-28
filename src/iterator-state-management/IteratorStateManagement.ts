@@ -1,5 +1,5 @@
 import { Observable, Subject, BehaviorSubject, merge } from "rxjs";
-import { tap, takeUntil } from "rxjs/operators";
+import { map, tap, takeUntil } from "rxjs/operators";
 
 import {
   IEventsIterator,
@@ -46,6 +46,7 @@ export class IteratorStateManagement<State, Message>
 
     merge(...observables)
       .pipe(
+        map(x => (x === undefined ? Object.create(null) : x)), // Just calling actions on other components
         tap(this.eventsIterator.dispatch.bind(this.eventsIterator)),
         takeUntil(this.unsubscribe$),
       )

@@ -15,13 +15,14 @@ import {
 export class ListChildItemTestComponent {
   @Input()
   id;
+
   @Input()
   name;
 
   @Output()
   itemClicked = new EventEmitter();
 
-  _itemClicked(value) {
+  emitItemClicked(value) {
     this.itemClicked.emit(value);
   }
 }

@@ -1,5 +1,5 @@
-<p>Item Updates: {{ updates }}</p>
+<p>Item Updates: {{ _updates$ | async }}</p>
 <ul>
   <app-list-child-item-test *ngFor="let item of items; trackBy: trackByItemId" [id]="item.id" [name]="item.name"
-    (itemClicked)="_itemClicked($event)"></app-list-child-item-test>
+    (itemClicked)="emitItemClicked($event)"></app-list-child-item-test>
 </ul>

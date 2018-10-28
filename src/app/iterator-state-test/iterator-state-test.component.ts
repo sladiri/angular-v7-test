@@ -1,6 +1,6 @@
 import { Component, ViewChild, OnInit } from "@angular/core";
-import { Observable, Subject, fromEvent } from "rxjs";
-import { map, tap } from "rxjs/operators";
+import { Observable, Subject, fromEvent, merge } from "rxjs";
+import { map, tap, distinctUntilChanged } from "rxjs/operators";
 import { prop } from "ramda";
 
 import {
@@ -48,8 +48,6 @@ export class IteratorStateTestComponent implements OnInit {
   @ViewChild("input")
   private readonly input;
 
-  // private generateFetchAction: IEventsIterator<IMessage> = new EventsIterator();
-
   constructor() {
     this.sm = new IteratorStateManagement(
       this.state,
@@ -57,7 +55,7 @@ export class IteratorStateTestComponent implements OnInit {
         fromEvent(document, "pointerdown").pipe(
           map(() => ({ pointerdown: true })),
         ),
-        // TODO: optimise?
+        // TODO: remove duplicate with Rx operator
         fromEvent(document, "pointerup"),
         fromEvent(document, "pointerup").pipe(map(() => ({ pointerup: true }))),
         this.textUpdate$.pipe(map(this.textUpdated.bind(this))),
@@ -65,6 +63,9 @@ export class IteratorStateTestComponent implements OnInit {
         this.dataFetch$.pipe(map(this.dataFetched.bind(this))),
         this.randomItemUpdate$.pipe(map(this.randomItemUpdated.bind(this))),
         this.itemClick$.pipe(map(this.itemClicked.bind(this))),
+        merge(this.randomItemUpdate$, this.itemClick$).pipe(
+          tap(() => this.listChild.updates$.next(null)),
+        ),
       ],
       [this.updateState.bind(this)],
       this.nextActionPredicate.bind(this),
@@ -72,9 +73,7 @@ export class IteratorStateTestComponent implements OnInit {
 
     this.items$ = this.sm.state$.pipe(
       map(prop("listItems")),
-      tap(x => {
-        // console.log("tap items$", x.map(y => y.name));
-      }),
+      map((items: Array<any>) => [...items]),
     );
 
     //
@@ -83,21 +82,18 @@ export class IteratorStateTestComponent implements OnInit {
     // TODO: Possible "threading" in eventsIterator?
     // TODO: Is it a good pattern?
     // this.generateFetchAction.start([
-    //   asyncFilter(i => i.fetchedData),
-    //   // filter(i => i.fetchedData),
-    //   distinctUntilChanged((a, b) => a.fetchedData !== b.fetchedData),
-    //   flatMapLatest(this.fetchData),
-    //   // map(dataResponse => ({ dataResponse })),
-    //   asyncMap(dataResponse => ({ dataResponse })),
-    //   forEach(i => this.eventsIterator.dispatch(i)),
-    //   // asyncTap(i => this.eventsIterator.dispatch(i)), // type error bug?
+    // asyncFilter(i => i.fetchedData),
+    // filter(i => i.fetchedData),
+    // distinctUntilChanged((a: IMessage, b: IMessage) => a.fetchedData !== b.fetchedData),
+    // flatMapLatest(this.fetchData),
+    // map(dataResponse => ({ dataResponse })),
+    // asyncMap(dataResponse => ({ dataResponse })),
+    // forEach(i => this.eventsIterator.dispatch(i)),
+    // asyncTap(i => this.eventsIterator.dispatch(i)), // type error bug?
     // ]);
   }
 
   ngOnInit() {
-    // this.eventsIterator.dispatch({}); // Initial render
-    // Initialise children with full list to optimise change, but Angular can help us, see below in notifyStateUpdate
-    // this.listChild.itemsUpdated(this.listItems);
     this.input.nativeElement.focus();
   }
 
@@ -123,15 +119,13 @@ export class IteratorStateTestComponent implements OnInit {
   dataFetched() {
     const fetchedData = `${Math.random()}`;
     // const fetchedData = 42;
-    // this.generateFetchAction.dispatch();
+    return { fetchedData };
   }
 
   async *updateState(source) {
     const state = this.state;
 
     for await (const item of source) {
-      // console.log("updateState", item);
-
       const { aText } = item;
       if (typeof aText === "string") {
         state.aText = aText;
@@ -167,8 +161,6 @@ export class IteratorStateTestComponent implements OnInit {
         const index = Math.floor(Math.random() * state.listItems.length);
         const name = `${Math.random()}`;
         state.listItems[index]["name"] = name;
-        // If we make sure to not to change items, we can let Angular optimise re-renders
-        // item = { listItemUpdate: { index, name } };
       }
       if (Number.isInteger(itemUpdated)) {
         const name = `${Math.random()}`;
@@ -190,7 +182,7 @@ export class IteratorStateTestComponent implements OnInit {
     return item;
   }
 
-  private fetchData() {
+  private fetchData(): Promise<string> {
     return new Promise(resolve => {
       const val = `${Math.random()}`;
       const delay = Math.floor(Math.random() * (2000 - 100 + 1)) + 100;
