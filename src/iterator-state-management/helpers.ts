@@ -1,10 +1,10 @@
 import { takeWhile } from "rxjs/operators";
 import { identity } from "ramda";
-import { IIteratorStateManagement, IMessage } from "./IIteratorStateManagement";
+import { IIteratorStateManagement } from "./IIteratorStateManagement";
 
 // #region testing
 
-async function _testActions<State, Message extends IMessage>(
+async function _testActions<State, Message extends object>(
   stateManager: IIteratorStateManagement<State, Message>,
   actions: Array<Function>,
 ): Promise<void> {
@@ -14,7 +14,7 @@ async function _testActions<State, Message extends IMessage>(
   }
 }
 
-export function testActions<State, Message extends IMessage>(
+export function testActions<State, Message extends object>(
   stateManager: IIteratorStateManagement<State, Message>,
 ) {
   return (actions: Array<Function>) =>

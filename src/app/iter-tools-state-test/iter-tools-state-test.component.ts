@@ -9,9 +9,9 @@ import {
 } from "@local/IteratorStateManagement";
 
 // #region Actions (reusable)
-const clicked = () => {
+const clicked: () => object = () => {
   // await new Promise(r => setTimeout(r, 100));
-  return { target: "foo" };
+  return { counter: true };
 };
 // #endregion
 
@@ -22,7 +22,7 @@ const clicked = () => {
 })
 export class IterToolsStateTestComponent implements OnInit, OnDestroy {
   // #region Input
-  readonly click$: Subject<void> = new Subject<void>();
+  readonly click$: Subject<object> = new Subject<object>();
 
   private readonly inputs = [this.click$.pipe(map(clicked))];
   // #endregion
@@ -32,7 +32,8 @@ export class IterToolsStateTestComponent implements OnInit, OnDestroy {
     counter: 0,
   });
   readonly stateManager: IIteratorStateManagement<
-    any
+    any,
+    object
   > = new IteratorStateManagement(
     this.state,
     this.inputs,
@@ -63,7 +64,8 @@ export class IterToolsStateTestComponent implements OnInit, OnDestroy {
 
   private async *updateState(source) {
     for await (const item of source) {
-      if (item.target) {
+      const { counter } = item;
+      if (counter) {
         this.state.counter += 1;
       }
 

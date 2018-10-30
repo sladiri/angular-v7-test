@@ -5,9 +5,8 @@ import { IQueuedIterator, Transducer } from "./IQueuedIterator";
 export class QueuedIterator<Message extends object>
   implements IQueuedIterator<Message> {
   private readonly queue: any;
-  private readonly producer: AsyncIterableIterator<Message>;
   private readonly TOKEN_DELETE: Message;
-
+  private readonly producer = this._producer();
   private callback: null | (() => void) = null;
   private isDone = false;
 
@@ -41,7 +40,6 @@ export class QueuedIterator<Message extends object>
       );
     }
     this.queue = new Deque(messageQueueCapacity);
-    this.producer = this._producer();
     this.TOKEN_DELETE = TOKEN_DELETE;
   }
 

@@ -1,6 +1,5 @@
 export {
   IIteratorStateManagement,
-  IMessage,
   TOKEN_DELETE,
 } from "./IIteratorStateManagement";
 

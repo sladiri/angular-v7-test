@@ -25,23 +25,23 @@ const fetchData = () =>
     setTimeout(() => resolve(val), delay);
   });
 
-const textUpdated = (value: string) => {
+const textUpdated: (v: string) => object = value => {
   return { aText: value };
 };
 
-const textReset = () => {
+const textReset: (v: void) => object = () => {
   return { aText: null };
 };
 
-const randomItemUpdated = () => {
+const randomItemUpdated: (v: void) => object = () => {
   return { itemUpdated: true };
 };
 
-const itemClicked = ([id, name]) => {
+const itemClicked: (v: Array<any>) => object = ([id, name]) => {
   return { itemUpdated: id };
 };
 
-const dataFetched = fetchedData => {
+const dataFetched: (v: string) => object = fetchedData => {
   return { dataResponse: fetchedData };
 };
 // #endregion
@@ -63,7 +63,7 @@ export class IteratorStateTestComponent implements OnInit, OnDestroy {
     // TODO: try to use iterator (eg. genDblClick)
     fromEvent(document, "pointerdown").pipe(map(() => ({ pointerdown: true }))),
     // TODO: remove duplicate with Rx operator
-    fromEvent(document, "pointerup"),
+    fromEvent(document, "pointerup").pipe(),
     fromEvent(document, "pointerup").pipe(map(() => ({ pointerup: true }))),
     this.textUpdate$.pipe(map(textUpdated)),
     this.textReset$.pipe(
@@ -78,7 +78,7 @@ export class IteratorStateTestComponent implements OnInit, OnDestroy {
     this.itemClick$.pipe(map(itemClicked)),
     merge(this.randomItemUpdate$, this.itemClick$).pipe(
       tap(() => this.listChild.updates$.next(null)),
-    ),
+    ) as Observable<void>,
   ];
   // #endregion
 
@@ -96,7 +96,8 @@ export class IteratorStateTestComponent implements OnInit, OnDestroy {
     ],
   });
   readonly stateManager: IIteratorStateManagement<
-    any
+    any,
+    object
   > = new IteratorStateManagement(
     this.state,
     this.inputs,
