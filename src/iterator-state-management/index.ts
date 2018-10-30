@@ -1,4 +1,8 @@
-export { IIteratorStateManagement } from "./IIteratorStateManagement";
+export {
+  IIteratorStateManagement,
+  IMessage,
+  TOKEN_DELETE,
+} from "./IIteratorStateManagement";
 
 export { IteratorStateManagement } from "./IteratorStateManagement";
 

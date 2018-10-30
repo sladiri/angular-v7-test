@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from "@angular/core";
 import { Observable, Subject } from "rxjs";
-import { map, tap, share } from "rxjs/operators";
+import { map } from "rxjs/operators";
 import { prop } from "ramda";
 
 import {

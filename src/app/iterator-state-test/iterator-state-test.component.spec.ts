@@ -1,6 +1,5 @@
 import { async, ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { IQueuedIterator, IMessage } from "@local/QueuedIterator";
 import { testActions } from "@local/IteratorStateManagement";
 
 import { IteratorStateTestComponent } from "./iterator-state-test.component";

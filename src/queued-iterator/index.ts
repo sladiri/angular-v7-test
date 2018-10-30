@@ -1,3 +1,3 @@
-export { Transducer, IQueuedIterator, IMessage } from "./IQueuedIterator";
+export { Transducer, IQueuedIterator } from "./IQueuedIterator";
 
 export { QueuedIterator } from "./QueuedIterator";

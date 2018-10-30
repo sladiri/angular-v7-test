@@ -1,16 +1,12 @@
 import Deque from "double-ended-queue";
-import { IQueuedIterator, IMessage, Transducer } from "./IQueuedIterator";
+import { IQueuedIterator, Transducer } from "./IQueuedIterator";
 
 // https://medium.com/dailyjs/async-generators-as-an-alternative-to-state-management-f9871390ffca
-export class QueuedIterator<Message extends IMessage>
+export class QueuedIterator<Message extends object>
   implements IQueuedIterator<Message> {
-  readonly TOKEN_DELETE: Message = Object.assign(Object.create(null), {
-    _type: "DELETE",
-  });
-  readonly TOKEN_TYPE_DEFAULT: string = "DEFAULT_MSG_TYPE";
-
   private readonly queue: any;
   private readonly producer: AsyncIterableIterator<Message>;
+  private readonly TOKEN_DELETE: Message;
 
   private callback: null | (() => void) = null;
   private isDone = false;
@@ -38,7 +34,7 @@ export class QueuedIterator<Message extends IMessage>
     });
   }
 
-  constructor(messageQueueCapacity: number = 2048) {
+  constructor(TOKEN_DELETE: Message, messageQueueCapacity: number = 2048) {
     if (!Number.isSafeInteger(messageQueueCapacity)) {
       throw new Error(
         "QueuedIterator: Message queue capacity must be safe integer.",
@@ -46,6 +42,7 @@ export class QueuedIterator<Message extends IMessage>
     }
     this.queue = new Deque(messageQueueCapacity);
     this.producer = this._producer();
+    this.TOKEN_DELETE = TOKEN_DELETE;
   }
 
   async start(transducers: Array<Transducer<Message>>) {
@@ -65,23 +62,12 @@ export class QueuedIterator<Message extends IMessage>
     this.dispatch(this.TOKEN_DELETE);
   }
 
-  dispatch(item: object) {
+  dispatch(item: Message) {
     if (this.isDone) {
       console.warn("QueuedIterator done, but dispatch was called.");
       return;
     }
-    if (item["_type"] && typeof item["_type"] !== "string") {
-      console.warn(
-        "QueuedIterator dispatched item has invalid type:",
-        typeof item["_type"],
-      );
-      return;
-    }
-    if (!item["_type"]) {
-      item["_type"] = this.TOKEN_TYPE_DEFAULT;
-    }
-    const message = item as Message;
-    this.queue.push(message);
+    this.queue.push(item);
     if (this.callback) {
       this.callback();
     }
@@ -96,7 +82,7 @@ export class QueuedIterator<Message extends IMessage>
       while (!this.queue.isEmpty()) {
         const item = this.queue.shift() as Message;
         yield item;
-        if (item._type === "DELETE") {
+        if (JSON.stringify(item) === JSON.stringify(this.TOKEN_DELETE)) {
           this.isDone = true;
           return;
         }

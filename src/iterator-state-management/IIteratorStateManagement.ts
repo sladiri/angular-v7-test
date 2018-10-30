@@ -1,9 +1,14 @@
 import { Observable } from "rxjs";
-import { IMessage, IQueuedIterator } from "@local/QueuedIterator";
+import { IQueuedIterator } from "@local/QueuedIterator";
+
+export interface IMessage {
+  _type: string;
+  [key: string]: any;
+}
 
 export interface IIteratorStateManagement<
   State,
-  Message extends IMessage = IMessage
+  Message extends object & IMessage = IMessage
 > {
   state$: Observable<State>;
   hasNextAction$: Observable<boolean>;
@@ -11,3 +16,7 @@ export interface IIteratorStateManagement<
   // Testing API
   eventsIterator: IQueuedIterator<Message>;
 }
+
+export const TOKEN_DELETE: IMessage = Object.assign(Object.create(null), {
+  _type: "DELETE",
+});

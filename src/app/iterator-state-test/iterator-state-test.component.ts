@@ -6,7 +6,7 @@ import {
   OnDestroy,
 } from "@angular/core";
 import { Observable, Subject, fromEvent, merge } from "rxjs";
-import { map, tap, switchMap, share } from "rxjs/operators";
+import { map, tap, switchMap } from "rxjs/operators";
 import { prop } from "ramda";
 
 import {
@@ -65,10 +65,7 @@ export class IteratorStateTestComponent implements OnInit, OnDestroy {
     // TODO: remove duplicate with Rx operator
     fromEvent(document, "pointerup"),
     fromEvent(document, "pointerup").pipe(map(() => ({ pointerup: true }))),
-    this.textUpdate$.pipe(
-      share(),
-      map(textUpdated),
-    ),
+    this.textUpdate$.pipe(map(textUpdated)),
     this.textReset$.pipe(
       tap(this.textReset.bind(this)),
       map(textReset),

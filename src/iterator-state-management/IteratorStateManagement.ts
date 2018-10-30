@@ -5,12 +5,15 @@ import {
   IQueuedIterator,
   QueuedIterator,
   Transducer,
-  IMessage,
 } from "@local/QueuedIterator";
 
-import { IIteratorStateManagement } from "./IIteratorStateManagement";
+import {
+  IIteratorStateManagement,
+  IMessage,
+  TOKEN_DELETE,
+} from "./IIteratorStateManagement";
 
-export class IteratorStateManagement<State, Message extends IMessage>
+export class IteratorStateManagement<State, Message extends IMessage = IMessage>
   implements IIteratorStateManagement<State, Message> {
   private readonly unsubscribe$: Subject<boolean>;
   private readonly state: State;
@@ -29,7 +32,7 @@ export class IteratorStateManagement<State, Message extends IMessage>
     observables: Array<Observable<any>>,
     iterators: Array<Transducer<Message>>,
     nextActionPredicate?: () => boolean | void,
-    immutableStateStream?: boolean,
+    immutableStateStream = false,
   ) {
     this.unsubscribe$ = new Subject<boolean>();
     this.state = state;
@@ -38,7 +41,7 @@ export class IteratorStateManagement<State, Message extends IMessage>
 
     this.hasNextAction$ = new Subject<boolean>();
 
-    this.eventsIterator = new QueuedIterator();
+    this.eventsIterator = new QueuedIterator(TOKEN_DELETE);
     this.nextActionPredicate = nextActionPredicate;
     this.immutableStateStream = immutableStateStream || false;
     this.eventsIterator.start([
