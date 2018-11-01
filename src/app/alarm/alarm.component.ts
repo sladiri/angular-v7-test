@@ -151,30 +151,31 @@ export class AlarmComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private async *updateState(source: AsyncIterable<any>) {
+    const state = this.state;
     for await (const item of source) {
       const { tagContact } = item;
       if (tagContact !== undefined) {
-        Object.keys(this.state.tagContact).forEach(
-          key => (this.state.tagContact[key] = false),
+        Object.keys(state.tagContact).forEach(
+          key => (state.tagContact[key] = false),
         );
       }
       if (tagContact) {
-        this.state.tagContact[tagContact] = true;
+        state.tagContact[tagContact] = true;
       }
 
       const { keypadButton } = item;
-      if (this.state.tagContact.keypad) {
+      if (state.tagContact.keypad) {
         if (keypadButton === "disarm") {
-          this.state.armed = false;
+          state.armed = false;
         }
         if (keypadButton === "arm") {
-          this.state.armed = true;
+          state.armed = true;
         }
       }
 
       const { lock } = item;
       if (typeof lock === "boolean") {
-        this.state.locked = lock;
+        state.locked = lock;
       }
 
       yield item;

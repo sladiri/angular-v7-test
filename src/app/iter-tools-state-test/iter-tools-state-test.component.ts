@@ -63,10 +63,11 @@ export class IterToolsStateTestComponent implements OnInit, OnDestroy {
   }
 
   private async *updateState(source) {
+    const state = this.state;
     for await (const item of source) {
       const { counter } = item;
       if (counter) {
-        this.state.counter += 1;
+        state.counter += 1;
       }
 
       yield item;
