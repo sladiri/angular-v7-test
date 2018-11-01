@@ -80,9 +80,15 @@ export class IterToolsStateTestComponent implements OnInit, OnDestroy {
       this.click$.next();
       return true;
     }
-    if (state.counter === 10) {
+    if (state.counter === 6) {
       this.click$.next();
       this.click$.next();
+      return true;
+    }
+    if (state.counter === 9) {
+      setTimeout(() => {
+        this.click$.next();
+      }, 1000);
       return true;
     }
   }
