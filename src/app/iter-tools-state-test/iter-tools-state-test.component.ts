@@ -82,6 +82,9 @@ export class IterToolsStateTestComponent implements OnInit, OnDestroy {
     }
     if (state.counter === 6) {
       this.click$.next();
+      return true;
+    }
+    if (state.counter === 7) {
       this.click$.next();
       return true;
     }

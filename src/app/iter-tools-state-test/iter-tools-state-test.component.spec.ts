@@ -40,7 +40,7 @@ describe("IterToolsStateTestComponent", () => {
     // expect(await component.counter$.pipe(take(1)).toPromise()).toEqual(2);
   }));
 
-  it("should increment the counter with NAP 1/5", async(async () => {
+  it("should increment the counter with NAP 1/6", async(async () => {
     await waitForActions([
       () => component.click$.next(),
       () => component.click$.next(),
@@ -49,7 +49,7 @@ describe("IterToolsStateTestComponent", () => {
     expect(component.state.counter).toEqual(4);
   }));
 
-  it("should increment the counter with NAP 2/5", async(async () => {
+  it("should increment the counter with NAP 2/6", async(async () => {
     await waitForActions([
       () => component.click$.next(),
       () => component.click$.next(),
@@ -59,20 +59,8 @@ describe("IterToolsStateTestComponent", () => {
     expect(component.state.counter).toEqual(5);
   }));
 
-  it("should increment the counter with NAP 3/5", async(async () => {
+  it("should increment the counter with NAP 3/6", async(async () => {
     await waitForActions([
-      () => component.click$.next(),
-      () => component.click$.next(),
-      () => component.click$.next(),
-      () => component.click$.next(),
-      () => component.click$.next(),
-    ]);
-    expect(component.state.counter).toEqual(7);
-  }));
-
-  it("should increment the counter with NAP 4/5", async(async () => {
-    await waitForActions([
-      () => component.click$.next(),
       () => component.click$.next(),
       () => component.click$.next(),
       () => component.click$.next(),
@@ -82,9 +70,8 @@ describe("IterToolsStateTestComponent", () => {
     expect(component.state.counter).toEqual(8);
   }));
 
-  it("should increment the counter with NAP 5/5", async(async () => {
+  it("should increment the counter with NAP 5/6", async(async () => {
     await waitForActions([
-      () => component.click$.next(),
       () => component.click$.next(),
       () => component.click$.next(),
       () => component.click$.next(),
@@ -93,5 +80,19 @@ describe("IterToolsStateTestComponent", () => {
       () => component.click$.next(),
     ]);
     expect(component.state.counter).toEqual(10);
+  }));
+
+  it("should increment the counter with NAP 6/6", async(async () => {
+    await waitForActions([
+      () => component.click$.next(),
+      () => component.click$.next(),
+      () => component.click$.next(),
+      () => component.click$.next(),
+      () => component.click$.next(),
+      () => component.click$.next(),
+      () => component.click$.next(),
+      () => component.click$.next(),
+    ]);
+    expect(component.state.counter).toEqual(12);
   }));
 });

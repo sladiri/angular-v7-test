@@ -1,0 +1,22 @@
+.alarm {
+  border: 1px solid;
+  max-width: 20rem;
+}
+
+.access,
+.tag,
+.keypad {
+  padding: 1rem;
+  color: white;
+  margin: 0.5rem;
+  user-select: none;
+}
+
+.access,
+.keypad {
+  background-color: brown;
+}
+
+.tag {
+  background-color: navy;
+}

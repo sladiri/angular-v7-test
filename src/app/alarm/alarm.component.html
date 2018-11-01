@@ -1,0 +1,20 @@
+<div class="alarm">
+  <p><span *ngIf="state.locked">Locked</span></p>
+  <p><span *ngIf="!state.locked">Unlocked</span></p>
+  <p><span *ngIf="state.armed">Armed</span></p>
+  <p><span *ngIf="!state.armed">Disarmed</span></p>
+  <p><span *ngIf="state.notifing">Notifing</span></p>
+
+  <div #dropZone class="access">Access <button *ngIf="state.tagContact.access" (click)="this.tagCleared$.next()">Remove
+      TAG</button></div>
+
+  <div #tag class="tag" draggable="true" ondragstart="event.dataTransfer.setData('text/plain',null)">TAG (drag)</div>
+
+  <div #dropZone class="keypad">
+    <p>Keypad</p>
+    <button #disarm>Disarm</button>
+    <button #arm>Arm</button>
+    <br />
+    <button *ngIf="state.tagContact.keypad" (click)="this.tagCleared$.next()">Remove TAG</button>
+  </div>
+</div>
